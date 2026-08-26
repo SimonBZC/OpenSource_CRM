@@ -1,0 +1,14 @@
+api_platform:
+    title: FreeCRM API
+    description: >
+        API locale de gestion de la prospection freelance (entreprises, contacts,
+        opportunités, interactions, relances, tâches). Application strictement
+        locale : aucune authentification.
+    version: 1.0.0
+    defaults:
+        stateless: true
+        cache_headers:
+            vary: ['Content-Type', 'Authorization', 'Origin']
+        pagination_client_items_per_page: true
+        pagination_items_per_page: 30
+        pagination_maximum_items_per_page: 100

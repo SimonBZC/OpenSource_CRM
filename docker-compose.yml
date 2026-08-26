@@ -1,0 +1,83 @@
+# FreeCRM — stack de développement local
+# Outil personnel de prospection freelance. Strictement local, sans authentification.
+#
+#   docker compose up -d --build
+#
+# Backend  : http://localhost:${BACKEND_PORT:-8080}
+# Frontend : http://localhost:${FRONTEND_PORT:-3000}
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: freecrm-db
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-freecrm}
+      POSTGRES_USER: ${POSTGRES_USER:-freecrm}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-freecrm}
+    ports:
+      # Exposé pour permettre l'accès depuis un client SQL de l'hôte (pgAdmin, DBeaver, PhpStorm).
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      # Bind mount (et non volume Docker nommé) pour que les données Postgres soient versionnées
+      # avec le repo et synchronisées entre machines via git commit/pull.
+      # ⚠️ Toujours faire `docker compose stop db` AVANT tout commit/pull touchant ce dossier :
+      # ne jamais committer/puller pendant que Postgres a les fichiers ouverts (risque de corruption).
+      - ./docker/db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-freecrm} -d ${POSTGRES_DB:-freecrm}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    restart: unless-stopped
+
+  app:
+    build:
+      context: ./backend
+    container_name: freecrm-app
+    environment:
+      APP_ENV: ${APP_ENV:-dev}
+      APP_DEBUG: ${APP_DEBUG:-1}
+      DATABASE_URL: "postgresql://${POSTGRES_USER:-freecrm}:${POSTGRES_PASSWORD:-freecrm}@db:5432/${POSTGRES_DB:-freecrm}?serverVersion=16&charset=utf8"
+      # Phase 1 : transport synchrone. Un vrai transport async viendra plus tard.
+      MESSENGER_TRANSPORT_DSN: ${MESSENGER_TRANSPORT_DSN:-sync://}
+      # IA (App\Ai\...), optionnelle : vide par défaut, le CRM fonctionne sans.
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
+      OPENAI_TIMEOUT: ${OPENAI_TIMEOUT:-30}
+    ports:
+      - "${BACKEND_PORT:-8080}:8080"
+    volumes:
+      # Bind mount du code source pour le hot-reload en développement.
+      - ./backend:/var/www/html
+      # Volume anonyme : garde les vendors installés dans l'image, non écrasés par le bind mount.
+      - /var/www/html/var
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: freecrm-frontend
+    environment:
+      # Consommée par le navigateur -> doit pointer vers l'hôte, pas vers le nom de service Docker.
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8080}
+      # NODE_ENV n'est PAS fixé ici volontairement : "next dev" force déjà "development" en interne,
+      # et forcer explicitement NODE_ENV=development dans l'environnement casse "next build"
+      # (bug connu Next.js 16 : https://github.com/vercel/next.js/issues/97046 — le build ne peut
+      # alors plus assigner NODE_ENV=production tout seul, et le prerender de la page interne
+      # "/_global-error" plante avec "TypeError: Cannot read properties of null (reading 'useContext')").
+      # Nécessaire pour que le hot-reload fonctionne à travers un bind mount sur macOS/Windows.
+      WATCHPACK_POLLING: "true"
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    volumes:
+      - ./frontend:/app
+      # Volume anonyme : préserve les node_modules de l'image.
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      - app
+    restart: unless-stopped

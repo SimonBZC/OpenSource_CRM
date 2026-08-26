@@ -1,0 +1,228 @@
+"use client";
+
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { use, useCallback, useEffect, useState } from "react";
+import { CompanyFormFields } from "@/components/companies/CompanyFormFields";
+import { Badge } from "@/components/ui/Badge";
+import { ErrorBanner } from "@/components/ui/ErrorBanner";
+import { ApiValidationError, toDisplayMessage } from "@/lib/api/errors";
+import { idFromIri } from "@/lib/api/iri";
+import { companiesApi, contactsApi, opportunitiesApi } from "@/lib/api/resources";
+import type { Company, CompanyWritePayload, Contact, Opportunity } from "@/lib/api/types";
+import { formatDate } from "@/lib/format";
+import { opportunityStatusBadgeClasses, opportunityStatusLabels } from "@/lib/labels";
+
+export default function CompanyDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = use(params);
+  const router = useRouter();
+
+  const [company, setCompany] = useState<Company | null>(null);
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
+  const [values, setValues] = useState<CompanyWritePayload>({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [validationError, setValidationError] = useState<ApiValidationError | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await companiesApi.get(id);
+      setCompany(data);
+      setValues({
+        name: data.name,
+        website: data.website,
+        sector: data.sector,
+        location: data.location,
+        description: data.description,
+        notes: data.notes,
+        source: data.source,
+      });
+      const [relatedContacts, relatedOpportunities] = await Promise.all([
+        Promise.all(
+          data.contacts
+            .map((iri) => idFromIri(iri))
+            .filter((cid): cid is number => cid !== null)
+            .map((cid) => contactsApi.get(cid)),
+        ),
+        Promise.all(
+          data.opportunities
+            .map((iri) => idFromIri(iri))
+            .filter((oid): oid is number => oid !== null)
+            .map((oid) => opportunitiesApi.get(oid)),
+        ),
+      ]);
+      setContacts(relatedContacts);
+      setOpportunities(relatedOpportunities);
+    } catch (err) {
+      setError(toDisplayMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
+
+  useEffect(() => {
+    const timeout = setTimeout(load, 0);
+    return () => clearTimeout(timeout);
+  }, [load]);
+
+  function onChange<K extends keyof CompanyWritePayload>(
+    field: K,
+    value: CompanyWritePayload[K],
+  ) {
+    setValues((prev) => ({ ...prev, [field]: value }));
+  }
+
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    setError(null);
+    setValidationError(null);
+    try {
+      const updated = await companiesApi.update(id, values);
+      setCompany(updated);
+    } catch (err) {
+      if (err instanceof ApiValidationError) {
+        setValidationError(err);
+      } else {
+        setError(toDisplayMessage(err));
+      }
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!confirm("Supprimer définitivement cette entreprise ?")) return;
+    setDeleting(true);
+    setError(null);
+    try {
+      await companiesApi.remove(id);
+      router.push("/companies");
+    } catch (err) {
+      setError(toDisplayMessage(err));
+      setDeleting(false);
+    }
+  }
+
+  if (loading) {
+    return <div className="p-8 text-sm text-black/50">Chargement...</div>;
+  }
+
+  if (!company) {
+    return (
+      <div className="p-8">
+        <ErrorBanner message={error ?? "Entreprise introuvable."} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-8">
+      <div className="flex items-center justify-between">
+        <div>
+          <Link href="/companies" className="text-sm text-blue-700 hover:underline">
+            ← Entreprises
+          </Link>
+          <h1 className="mt-1 text-2xl font-bold tracking-tight">{company.name}</h1>
+        </div>
+        <button
+          type="button"
+          onClick={handleDelete}
+          disabled={deleting}
+          className="rounded-md border border-red-300 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
+        >
+          {deleting ? "Suppression..." : "Supprimer"}
+        </button>
+      </div>
+
+      <div className="mt-4">
+        <ErrorBanner message={error} />
+      </div>
+
+      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <form onSubmit={handleSave} className="lg:col-span-2">
+          <div className="rounded-lg border border-black/10 bg-white p-6">
+            <CompanyFormFields
+              values={values}
+              onChange={onChange}
+              validationError={validationError}
+            />
+          </div>
+          <div className="mt-4">
+            <button
+              type="submit"
+              disabled={saving}
+              className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+            >
+              {saving ? "Enregistrement..." : "Enregistrer"}
+            </button>
+          </div>
+        </form>
+
+        <div className="space-y-6">
+          <div className="rounded-lg border border-black/10 bg-white p-4">
+            <h2 className="text-sm font-semibold text-black/70">
+              Contacts ({contacts.length})
+            </h2>
+            <ul className="mt-2 space-y-1">
+              {contacts.map((contact) => (
+                <li key={contact.id}>
+                  <Link
+                    href={`/contacts/${contact.id}`}
+                    className="text-sm text-blue-700 hover:underline"
+                  >
+                    {[contact.firstName, contact.lastName].filter(Boolean).join(" ")}
+                  </Link>
+                </li>
+              ))}
+              {contacts.length === 0 && (
+                <li className="text-sm text-black/40">Aucun contact lié.</li>
+              )}
+            </ul>
+          </div>
+
+          <div className="rounded-lg border border-black/10 bg-white p-4">
+            <h2 className="text-sm font-semibold text-black/70">
+              Opportunités ({opportunities.length})
+            </h2>
+            <ul className="mt-2 space-y-2">
+              {opportunities.map((opportunity) => (
+                <li key={opportunity.id} className="text-sm">
+                  <Link
+                    href={`/opportunities/${opportunity.id}`}
+                    className="text-blue-700 hover:underline"
+                  >
+                    {opportunity.title}
+                  </Link>
+                  <div className="mt-1">
+                    <Badge
+                      label={opportunityStatusLabels[opportunity.status]}
+                      className={opportunityStatusBadgeClasses[opportunity.status]}
+                    />
+                  </div>
+                </li>
+              ))}
+              {opportunities.length === 0 && (
+                <li className="text-sm text-black/40">Aucune opportunité liée.</li>
+              )}
+            </ul>
+          </div>
+
+          <div className="rounded-lg border border-black/10 bg-white p-4 text-xs text-black/50">
+            <p>Créée le {formatDate(company.createdAt)}</p>
+            <p>Dernier contact le {formatDate(company.lastInteractionAt)}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

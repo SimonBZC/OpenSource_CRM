@@ -1,0 +1,68 @@
+# This file is the entry point to configure your own services.
+# Files in the packages/ subdirectory configure your dependencies.
+
+# Put parameters here that don't need to change on each machine where the app is deployed
+# https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
+parameters:
+    # Phase 8 — App\Automation\Rule\CreateTaskForHighScoreOpportunityRule.
+    # Seuil volontairement plus sélectif que le seuil d'affichage "fort
+    # potentiel" du dashboard (score >= 70) pour éviter de spammer
+    # l'utilisateur de tâches automatiques. Ajustable sans toucher au code.
+    app.automation.high_score_threshold: 80
+
+services:
+    # default configuration for services in *this* file
+    _defaults:
+        autowire: true      # Automatically injects dependencies in your services.
+        autoconfigure: true # Automatically registers your services as commands, event subscribers, etc.
+
+    # makes classes in src/ available to be used as services
+    # this creates a service per class whose id is the fully-qualified class name
+    App\:
+        resource: '../src/'
+        exclude:
+            - '../src/DependencyInjection/'
+            - '../src/Entity/'
+            - '../src/Kernel.php'
+
+    # --- AI layer (App\Ai\...) --------------------------------------------
+    # LLMProviderInterface is aliased to the OpenAI implementation so the
+    # rest of the app (App\Ai\OpportunityAnalyzer, and later any calling
+    # code) only ever depends on the agnostic interface. Swapping providers
+    # (Claude, Mistral...) later only means changing this alias/service,
+    # never the business domain.
+    App\Ai\LLMProviderInterface: '@App\Ai\Provider\OpenAiProvider'
+
+    # Controllers must be public so the HttpKernel controller resolver can
+    # fetch them from the container by their FQCN when referenced from a
+    # #[Route] attribute (framework-bundle normally tags/publicizes classes
+    # under #[AsController], but we make it explicit here to avoid relying
+    # on compiler-pass ordering).
+    App\Controller\OpportunityAnalysisController:
+        public: true
+
+    # Phase 8 — seuil de score injecté en paramètre de conteneur (voir
+    # parameters: ci-dessus) plutôt que codé en dur dans la règle.
+    App\Automation\Rule\CreateTaskForHighScoreOpportunityRule:
+        arguments:
+            $highScoreThreshold: '%app.automation.high_score_threshold%'
+
+    App\Ai\Provider\OpenAiProvider:
+        arguments:
+            # No default value here on purpose: OPENAI_API_KEY is empty by
+            # default (see .env), and the provider must still be
+            # instantiable/autowirable without it — the "missing key" error
+            # only happens when a call is actually attempted.
+            $openAiApiKey: '%env(OPENAI_API_KEY)%'
+            $openAiModel: '%env(OPENAI_MODEL)%'
+            $openAiTimeout: '%env(int:OPENAI_TIMEOUT)%'
+
+    # Decorates API Platform's OpenAPI factory to add the documentation for
+    # the /api/opportunities/{id}/analyze endpoint (plain controller, not an
+    # ApiResource operation, so it is invisible to the default generator).
+    App\OpenApi\OpportunityAnalysisOpenApiFactory:
+        decorates: 'api_platform.openapi.factory'
+        arguments: ['@.inner']
+
+    # add more service definitions when explicit configuration is needed
+    # please note that last definitions always *replace* previous ones
