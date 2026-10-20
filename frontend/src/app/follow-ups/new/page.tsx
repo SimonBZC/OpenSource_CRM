@@ -1,22 +1,52 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 import { FollowUpFormFields } from "@/components/follow-ups/FollowUpFormFields";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
+import { useNotify } from "@/components/ui/Toaster";
 import { ApiValidationError, toDisplayMessage } from "@/lib/api/errors";
+import { companyIri, contactIri } from "@/lib/api/iri";
 import { companiesApi, contactsApi, followUpsApi, opportunitiesApi } from "@/lib/api/resources";
 import type { Company, Contact, FollowUpWritePayload, Opportunity } from "@/lib/api/types";
+import {
+  DEFAULT_FOLLOW_UP_TITLE,
+  defaultFollowUpScheduledAt,
+  ensureOption,
+  readIdParam,
+} from "@/lib/prefill";
 
+/**
+ * `useSearchParams` impose un Suspense boundary en App Router : la lecture du
+ * pré-remplissage (`?contact=…&company=…`, liens de la liste des contacts)
+ * est isolée dans un composant enfant.
+ */
 export default function NewFollowUpPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-sm text-black/50">Chargement…</div>}>
+      <NewFollowUpPageContent />
+    </Suspense>
+  );
+}
+
+function NewFollowUpPageContent() {
   const router = useRouter();
+  const notify = useNotify();
+  const searchParams = useSearchParams();
+  const prefilledContactId = readIdParam(searchParams, "contact");
+  const prefilledCompanyId = readIdParam(searchParams, "company");
   const [companies, setCompanies] = useState<Company[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
-  const [values, setValues] = useState<FollowUpWritePayload>({
-    title: "",
+  // Arrivée depuis la colonne Actions de la liste des contacts : titre et
+  // date prévue par défaut (toujours modifiables).
+  const [values, setValues] = useState<FollowUpWritePayload>(() => ({
+    title: prefilledContactId !== null ? DEFAULT_FOLLOW_UP_TITLE : "",
     status: "todo",
-  });
+    ...(prefilledContactId !== null && { scheduledAt: defaultFollowUpScheduledAt() }),
+    ...(prefilledContactId !== null && { contact: contactIri(prefilledContactId) }),
+    ...(prefilledCompanyId !== null && { company: companyIri(prefilledCompanyId) }),
+  }));
   const [validationError, setValidationError] = useState<ApiValidationError | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -24,16 +54,23 @@ export default function NewFollowUpPage() {
   useEffect(() => {
     Promise.all([
       companiesApi.list({ itemsPerPage: 100, "order[name]": "asc" }),
-      contactsApi.list({ itemsPerPage: 100, "order[lastName]": "asc" }),
+      contactsApi.list({ itemsPerPage: 100, active: true, "order[lastName]": "asc" }),
       opportunitiesApi.list({ itemsPerPage: 100, "order[createdAt]": "desc" }),
     ])
-      .then(([companiesResult, contactsResult, opportunitiesResult]) => {
-        setCompanies(companiesResult.items);
-        setContacts(contactsResult.items);
-        setOpportunities(opportunitiesResult.items);
+      .then(([companiesResult, contactsResult, opportunitiesResult]) =>
+        Promise.all([
+          ensureOption(companiesResult.items, prefilledCompanyId, (cid) => companiesApi.get(cid)),
+          ensureOption(contactsResult.items, prefilledContactId, (cid) => contactsApi.get(cid)),
+          opportunitiesResult.items,
+        ]),
+      )
+      .then(([companiesItems, contactsItems, opportunitiesItems]) => {
+        setCompanies(companiesItems);
+        setContacts(contactsItems);
+        setOpportunities(opportunitiesItems);
       })
       .catch((err) => setError(toDisplayMessage(err)));
-  }, []);
+  }, [prefilledCompanyId, prefilledContactId]);
 
   function onChange<K extends keyof FollowUpWritePayload>(
     field: K,
@@ -45,16 +82,17 @@ export default function NewFollowUpPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
-    setError(null);
     setValidationError(null);
     try {
       const created = await followUpsApi.create(values);
-      router.push(`/follow-ups/${created.id}`);
+      notify.success("Relance créée");
+      // Depuis la colonne Actions de la liste des contacts : retour à cette liste.
+      router.push(prefilledContactId !== null ? "/contacts" : `/follow-ups/${created.id}`);
     } catch (err) {
       if (err instanceof ApiValidationError) {
         setValidationError(err);
       } else {
-        setError(toDisplayMessage(err));
+        notify.error(toDisplayMessage(err));
       }
     } finally {
       setSubmitting(false);

@@ -4,9 +4,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { use, useCallback, useEffect, useState } from "react";
 import { FollowUpFormFields } from "@/components/follow-ups/FollowUpFormFields";
+import { MessageDialog } from "@/components/follow-ups/MessageDialog";
 import { Badge } from "@/components/ui/Badge";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
+import { useNotify } from "@/components/ui/Toaster";
 import { ApiValidationError, toDisplayMessage } from "@/lib/api/errors";
+import { idFromIri } from "@/lib/api/iri";
 import { companiesApi, contactsApi, followUpsApi, opportunitiesApi } from "@/lib/api/resources";
 import type {
   Company,
@@ -17,10 +21,12 @@ import type {
 } from "@/lib/api/types";
 import { formatDate } from "@/lib/format";
 import { followUpStatusBadgeClasses, followUpStatusLabels } from "@/lib/labels";
+import { ensureOption } from "@/lib/prefill";
 
 export default function FollowUpDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
+  const notify = useNotify();
 
   const [followUp, setFollowUp] = useState<FollowUp | null>(null);
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -32,6 +38,8 @@ export default function FollowUpDetailPage({ params }: { params: Promise<{ id: s
   const [validationError, setValidationError] = useState<ApiValidationError | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [messageOpen, setMessageOpen] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -40,12 +48,15 @@ export default function FollowUpDetailPage({ params }: { params: Promise<{ id: s
       const [data, companiesResult, contactsResult, opportunitiesResult] = await Promise.all([
         followUpsApi.get(id),
         companiesApi.list({ itemsPerPage: 100, "order[name]": "asc" }),
-        contactsApi.list({ itemsPerPage: 100, "order[lastName]": "asc" }),
+        contactsApi.list({ itemsPerPage: 100, active: true, "order[lastName]": "asc" }),
         opportunitiesApi.list({ itemsPerPage: 100, "order[createdAt]": "desc" }),
       ]);
       setFollowUp(data);
       setCompanies(companiesResult.items);
-      setContacts(contactsResult.items);
+      // Contacts actifs, plus le contact déjà lié s'il est inactif (ou hors des 100 premiers).
+      setContacts(
+        await ensureOption(contactsResult.items, idFromIri(data.contact), (cid) => contactsApi.get(cid)),
+      );
       setOpportunities(opportunitiesResult.items);
       setValues({
         title: data.title,
@@ -79,16 +90,16 @@ export default function FollowUpDetailPage({ params }: { params: Promise<{ id: s
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
-    setError(null);
     setValidationError(null);
     try {
       const updated = await followUpsApi.update(id, values);
       setFollowUp(updated);
+      notify.success("Relance modifiée");
     } catch (err) {
       if (err instanceof ApiValidationError) {
         setValidationError(err);
       } else {
-        setError(toDisplayMessage(err));
+        notify.error(toDisplayMessage(err));
       }
     } finally {
       setSaving(false);
@@ -96,15 +107,16 @@ export default function FollowUpDetailPage({ params }: { params: Promise<{ id: s
   }
 
   async function handleDelete() {
-    if (!confirm("Supprimer définitivement cette relance ?")) return;
+    if (deleting) return;
     setDeleting(true);
-    setError(null);
     try {
       await followUpsApi.remove(id);
+      notify.success("Relance supprimée");
       router.push("/follow-ups");
     } catch (err) {
-      setError(toDisplayMessage(err));
+      notify.error(toDisplayMessage(err));
       setDeleting(false);
+      setConfirmOpen(false);
     }
   }
 
@@ -135,18 +147,26 @@ export default function FollowUpDetailPage({ params }: { params: Promise<{ id: s
             />
           </div>
         </div>
-        <button
-          type="button"
-          onClick={handleDelete}
-          disabled={deleting}
-          className="rounded-md border border-red-300 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
-        >
-          {deleting ? "Suppression..." : "Supprimer"}
-        </button>
-      </div>
-
-      <div className="mt-4">
-        <ErrorBanner message={error} />
+        {/* Statut enregistré : pas de message ni de suppression pour une relance terminée. Seule la suppression est aussi refusée par l'API (409, FollowUpDeletionGuardProcessor). */}
+        {followUp.status !== "done" && (
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setMessageOpen(true)}
+              className="rounded-md border border-blue-300 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50"
+            >
+              Message
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirmOpen(true)}
+              disabled={deleting}
+              className="rounded-md border border-red-300 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
+            >
+              {deleting ? "Suppression..." : "Supprimer"}
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -179,6 +199,22 @@ export default function FollowUpDetailPage({ params }: { params: Promise<{ id: s
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Supprimer cette relance ?"
+        message={`La relance « ${followUp.title} » sera supprimée définitivement.`}
+        busy={deleting}
+        onConfirm={handleDelete}
+        onCancel={() => setConfirmOpen(false)}
+      />
+
+      {/* Contact enregistré de la relance, pas une modification non sauvegardée du formulaire. */}
+      <MessageDialog
+        open={messageOpen}
+        contactId={idFromIri(followUp.contact)}
+        onClose={() => setMessageOpen(false)}
+      />
     </div>
   );
 }

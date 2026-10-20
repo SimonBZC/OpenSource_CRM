@@ -2,8 +2,12 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { MessageDialog } from "@/components/follow-ups/MessageDialog";
 import { Badge } from "@/components/ui/Badge";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
+import { IconButton } from "@/components/ui/IconButton";
+import { useNotify } from "@/components/ui/Toaster";
 import { Pagination } from "@/components/ui/Pagination";
 import { toDisplayMessage } from "@/lib/api/errors";
 import { idFromIri } from "@/lib/api/iri";
@@ -30,11 +34,17 @@ export default function FollowUpsPage() {
   const [items, setItems] = useState<FollowUp[]>([]);
   const [totalItems, setTotalItems] = useState(0);
   const [page, setPage] = useState(1);
-  const [status, setStatus] = useState<FollowUpStatus | "">("");
+  // Par défaut, seules les relances à faire sont affichées.
+  const [status, setStatus] = useState<FollowUpStatus | "">("todo");
   const [quickFilter, setQuickFilter] = useState<QuickFilter>("all");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
+  const notify = useNotify();
+  // Relance visée par la popup de suppression (null = popup fermée).
+  const [pendingDelete, setPendingDelete] = useState<FollowUp | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  // Relance dont la popup « Message » est ouverte (null = popup fermée).
+  const [messageFollowUp, setMessageFollowUp] = useState<FollowUp | null>(null);
 
   // Listes de résolution pour la colonne "Élément lié" (pas de dénormalisation
   // côté API pour FollowUp, contrairement à Opportunity.companyName).
@@ -108,7 +118,6 @@ export default function FollowUpsPage() {
   }, [page, status, quickFilter]);
 
   async function markDone(followUp: FollowUp) {
-    setActionError(null);
     try {
       // completedAt n'est pas rempli par le backend (vérifié par curl) : on
       // l'envoie nous-mêmes avec la date/heure courante.
@@ -116,23 +125,29 @@ export default function FollowUpsPage() {
         status: "done",
         completedAt: new Date().toISOString(),
       });
+      notify.success("Relance marquée comme faite");
       reload();
     } catch (err) {
-      setActionError(toDisplayMessage(err));
+      notify.error(toDisplayMessage(err));
     }
   }
 
-  async function cancelFollowUp(followUp: FollowUp) {
-    setActionError(null);
+  async function deleteFollowUp() {
+    if (!pendingDelete || deleting) return;
+    setDeleting(true);
     try {
-      await followUpsApi.update(followUp.id, { status: "cancelled" });
+      await followUpsApi.remove(pendingDelete.id);
+      notify.success("Relance supprimée");
       reload();
     } catch (err) {
-      setActionError(toDisplayMessage(err));
+      notify.error(toDisplayMessage(err));
+    } finally {
+      setDeleting(false);
+      setPendingDelete(null);
     }
   }
 
-  function linkedItem(followUp: FollowUp): { label: string; href: string } | null {
+  function linkedItem(followUp: FollowUp): { label: string; href: string | null } | null {
     if (followUp.opportunity) {
       const id = idFromIri(followUp.opportunity);
       if (!id) return null;
@@ -146,7 +161,8 @@ export default function FollowUpsPage() {
     if (followUp.company) {
       const id = idFromIri(followUp.company);
       if (!id) return null;
-      return { label: `Entreprise : ${companyNames[id] ?? `#${id}`}`, href: `/companies/${id}` };
+      // Pas de page Entreprise : libellé seul.
+      return { label: `Entreprise : ${companyNames[id] ?? `#${id}`}`, href: null };
     }
     return null;
   }
@@ -204,7 +220,6 @@ export default function FollowUpsPage() {
 
       <div className="mt-4 space-y-3">
         <ErrorBanner message={error} />
-        <ErrorBanner message={actionError} />
       </div>
 
       <div className="mt-4 overflow-hidden rounded-lg border border-black/10 bg-white">
@@ -242,33 +257,42 @@ export default function FollowUpsPage() {
                     />
                   </td>
                   <td className="px-4 py-3 text-black/70">
-                    {link ? (
+                    {link?.href ? (
                       <Link href={link.href} className="text-blue-700 hover:underline">
                         {link.label}
                       </Link>
                     ) : (
-                      "—"
+                      (link?.label ?? "—")
                     )}
                   </td>
                   <td className="px-4 py-3">
-                    {followUp.status === "todo" && (
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
+                    <div className="flex gap-2">
+                      {followUp.status === "todo" && (
+                        <IconButton
+                          icon="check"
+                          label="Marquer comme faite"
+                          tone="green"
                           onClick={() => markDone(followUp)}
-                          className="rounded-md border border-green-300 px-2 py-1 text-xs font-medium text-green-700 hover:bg-green-50"
-                        >
-                          Marquer comme faite
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => cancelFollowUp(followUp)}
-                          className="rounded-md border border-black/15 px-2 py-1 text-xs font-medium text-black/60 hover:bg-black/5"
-                        >
-                          Annuler
-                        </button>
-                      </div>
-                    )}
+                        />
+                      )}
+                      {/* pas de message ni de suppression pour une relance terminée. Seule la suppression est aussi refusée par l'API (409, FollowUpDeletionGuardProcessor). */}
+                      {followUp.status !== "done" && (
+                        <>
+                          <IconButton
+                            icon="message"
+                            label="Message"
+                            tone="blue"
+                            onClick={() => setMessageFollowUp(followUp)}
+                          />
+                          <IconButton
+                            icon="trash"
+                            label="Supprimer"
+                            tone="red"
+                            onClick={() => setPendingDelete(followUp)}
+                          />
+                        </>
+                      )}
+                    </div>
                   </td>
                 </tr>
               );
@@ -287,6 +311,21 @@ export default function FollowUpsPage() {
       <div className="mt-4">
         <Pagination page={page} itemsPerPage={ITEMS_PER_PAGE} totalItems={totalItems} onPageChange={setPage} />
       </div>
+
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        title="Supprimer cette relance ?"
+        message={`La relance « ${pendingDelete?.title ?? ""} » sera supprimée définitivement.`}
+        busy={deleting}
+        onConfirm={deleteFollowUp}
+        onCancel={() => setPendingDelete(null)}
+      />
+
+      <MessageDialog
+        open={messageFollowUp !== null}
+        contactId={idFromIri(messageFollowUp?.contact)}
+        onClose={() => setMessageFollowUp(null)}
+      />
     </div>
   );
 }

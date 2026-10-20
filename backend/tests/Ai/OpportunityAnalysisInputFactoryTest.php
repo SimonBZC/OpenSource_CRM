@@ -20,10 +20,8 @@ final class OpportunityAnalysisInputFactoryTest extends TestCase
             ->setTitle('Développeur Symfony senior')
             ->setDescription('Mission longue durée')
             ->setCompany($company)
-            ->setUrl('https://example.com/mission')
             ->setTechnologies(['PHP', 'Symfony'])
-            ->setDailyRateMin(400)
-            ->setDailyRateMax(600)
+            ->setDailyRate(600)
             ->setRemote(true)
             ->setLocation('Paris')
             ->setDuration('6 mois')
@@ -34,10 +32,8 @@ final class OpportunityAnalysisInputFactoryTest extends TestCase
         self::assertSame('Développeur Symfony senior', $input->title);
         self::assertSame('Mission longue durée', $input->description);
         self::assertSame('Acme Corp', $input->companyName);
-        self::assertSame('https://example.com/mission', $input->url);
         self::assertSame(['PHP', 'Symfony'], $input->technologies);
-        self::assertSame(400, $input->dailyRateMin);
-        self::assertSame(600, $input->dailyRateMax);
+        self::assertSame(600, $input->dailyRate);
         self::assertTrue($input->remote);
         self::assertSame('Paris', $input->location);
         self::assertSame('6 mois', $input->duration);
@@ -62,10 +58,8 @@ final class OpportunityAnalysisInputFactoryTest extends TestCase
         self::assertSame('Mission minimale', $input->title);
         self::assertNull($input->description);
         self::assertNull($input->companyName);
-        self::assertNull($input->url);
         self::assertSame([], $input->technologies);
-        self::assertNull($input->dailyRateMin);
-        self::assertNull($input->dailyRateMax);
+        self::assertNull($input->dailyRate);
         self::assertFalse($input->remote);
         self::assertNull($input->location);
         self::assertNull($input->duration);

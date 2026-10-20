@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Tests\Entity;
 
+use App\Entity\Alert;
 use App\Entity\Company;
 use App\Entity\FollowUp;
 use App\Entity\Interaction;
 use App\Entity\Opportunity;
-use App\Entity\Task;
 use App\Enum\InteractionType;
 use App\Enum\OpportunitySource;
 use App\Enum\OpportunityStatus;
@@ -51,7 +51,7 @@ final class OpportunityTest extends TestCase
 
         self::assertCount(0, $opportunity->getInteractions());
         self::assertCount(0, $opportunity->getFollowUps());
-        self::assertCount(0, $opportunity->getTasks());
+        self::assertCount(0, $opportunity->getAlerts());
     }
 
     public function testOnPreUpdateRefreshesUpdatedAt(): void
@@ -139,73 +139,65 @@ final class OpportunityTest extends TestCase
         self::assertNull($followUp->getOpportunity());
     }
 
-    public function testAddTaskSynchronizesOwningSide(): void
+    public function testAddAlertSynchronizesOwningSide(): void
     {
         $opportunity = new Opportunity();
-        $task = new Task();
+        $alert = new Alert();
 
-        $opportunity->addTask($task);
+        $opportunity->addAlert($alert);
 
-        self::assertTrue($opportunity->getTasks()->contains($task));
-        self::assertSame($opportunity, $task->getOpportunity());
+        self::assertTrue($opportunity->getAlerts()->contains($alert));
+        self::assertSame($opportunity, $alert->getOpportunity());
     }
 
-    public function testAddTaskTwiceDoesNotDuplicate(): void
+    public function testAddAlertTwiceDoesNotDuplicate(): void
     {
         $opportunity = new Opportunity();
-        $task = new Task();
+        $alert = new Alert();
 
-        $opportunity->addTask($task);
-        $opportunity->addTask($task);
+        $opportunity->addAlert($alert);
+        $opportunity->addAlert($alert);
 
-        self::assertCount(1, $opportunity->getTasks());
+        self::assertCount(1, $opportunity->getAlerts());
     }
 
-    public function testRemoveTaskClearsOwningSide(): void
+    public function testRemoveAlertClearsOwningSide(): void
     {
         $opportunity = new Opportunity();
-        $task = new Task();
+        $alert = new Alert();
 
-        $opportunity->addTask($task);
-        $opportunity->removeTask($task);
+        $opportunity->addAlert($alert);
+        $opportunity->removeAlert($alert);
 
-        self::assertFalse($opportunity->getTasks()->contains($task));
-        self::assertNull($task->getOpportunity());
+        self::assertFalse($opportunity->getAlerts()->contains($alert));
+        self::assertNull($alert->getOpportunity());
     }
 
-    public function testDailyRateMinGreaterThanMaxProducesOneViolation(): void
+    public function testNegativeDailyRateProducesViolationOnDailyRate(): void
     {
-        $opportunity = $this->makeValidOpportunity()
-            ->setDailyRateMin(600)
-            ->setDailyRateMax(500);
+        $opportunity = $this->makeValidOpportunity()->setDailyRate(-1);
 
         $violations = self::$validator->validate($opportunity);
 
         self::assertCount(1, $violations);
-        self::assertSame(
-            'Le TJM minimum doit être inférieur ou égal au TJM maximum.',
-            $violations[0]->getMessage(),
-        );
+        self::assertSame('dailyRate', $violations[0]->getPropertyPath());
+        self::assertSame('Le TJM doit être positif ou nul.', $violations[0]->getMessage());
     }
 
     /**
-     * @return iterable<string, array{0: ?int, 1: ?int}>
+     * @return iterable<string, array{0: ?int}>
      */
     public static function validDailyRateProvider(): iterable
     {
-        yield 'min equals max' => [500, 500];
-        yield 'min lower than max' => [400, 600];
-        yield 'min null, max set' => [null, 600];
-        yield 'min set, max null' => [400, null];
-        yield 'both null' => [null, null];
+        yield 'null' => [null];
+        yield 'zero' => [0];
+        yield 'positive' => [600];
     }
 
     #[DataProvider('validDailyRateProvider')]
-    public function testDailyRateProducesNoViolationWhenConsistent(?int $min, ?int $max): void
+    public function testDailyRateProducesNoViolationWhenNullOrPositive(?int $dailyRate): void
     {
-        $opportunity = $this->makeValidOpportunity()
-            ->setDailyRateMin($min)
-            ->setDailyRateMax($max);
+        $opportunity = $this->makeValidOpportunity()->setDailyRate($dailyRate);
 
         $violations = self::$validator->validate($opportunity);
 
@@ -267,33 +259,6 @@ final class OpportunityTest extends TestCase
         self::assertCount(0, $violations);
     }
 
-    public function testInvalidUrlProducesViolation(): void
-    {
-        $opportunity = $this->makeValidOpportunity()->setUrl('not-a-valid-url');
-
-        $violations = self::$validator->validate($opportunity);
-
-        self::assertGreaterThan(0, \count($violations));
-    }
-
-    public function testValidUrlProducesNoViolation(): void
-    {
-        $opportunity = $this->makeValidOpportunity()->setUrl('https://example.com/mission');
-
-        $violations = self::$validator->validate($opportunity);
-
-        self::assertCount(0, $violations);
-    }
-
-    public function testUrlTooLongProducesViolation(): void
-    {
-        $opportunity = $this->makeValidOpportunity()->setUrl('https://example.com/' . str_repeat('a', 512));
-
-        $violations = self::$validator->validate($opportunity);
-
-        self::assertGreaterThan(0, \count($violations));
-    }
-
     public function testLocationTooLongProducesViolation(): void
     {
         $opportunity = $this->makeValidOpportunity()->setLocation(str_repeat('a', 256));
@@ -319,5 +284,46 @@ final class OpportunityTest extends TestCase
         $violations = self::$validator->validate($opportunity);
 
         self::assertCount(0, $violations);
+    }
+
+    public function testStatusChangedAtIsInitializedToCreationDate(): void
+    {
+        $opportunity = new Opportunity();
+
+        self::assertEquals($opportunity->getCreatedAt(), $opportunity->getStatusChangedAt());
+    }
+
+    public function testEffectiveStatusChangeUpdatesStatusChangedAt(): void
+    {
+        $old = new \DateTimeImmutable('-20 days');
+        $opportunity = (new Opportunity())->setStatusChangedAt($old);
+
+        $before = new \DateTimeImmutable();
+        $opportunity->setStatus(OpportunityStatus::CONTACTED);
+
+        self::assertGreaterThanOrEqual($before, $opportunity->getStatusChangedAt());
+    }
+
+    public function testSameStatusDoesNotUpdateStatusChangedAt(): void
+    {
+        $opportunity = (new Opportunity())->setStatus(OpportunityStatus::WAITING);
+        $old = new \DateTimeImmutable('-20 days');
+        $opportunity->setStatusChangedAt($old);
+
+        $opportunity->setStatus(OpportunityStatus::WAITING);
+
+        self::assertSame($old, $opportunity->getStatusChangedAt());
+    }
+
+    public function testOtherChangesDoNotUpdateStatusChangedAt(): void
+    {
+        $opportunity = (new Opportunity())->setTitle('Avant')->setStatus(OpportunityStatus::CONTACTED);
+        $old = new \DateTimeImmutable('-20 days');
+        $opportunity->setStatusChangedAt($old);
+
+        $opportunity->setTitle('Après')->setNotes('Note')->setDailyRate(600);
+        $opportunity->onPreUpdate();
+
+        self::assertSame($old, $opportunity->getStatusChangedAt());
     }
 }

@@ -19,12 +19,9 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
  * réellement fonctionnel de la Phase 9 (LinkedIn/Malt restent des
  * placeholders, voir App\Import\LinkedInImporter / App\Import\MaltImporter).
  *
- * Détection de doublon (règle arbitrée par l'orchestrateur) :
- *   1. si `url` est renseignée et qu'une Opportunity existe déjà avec cette
- *      même url -> DUPLICATE ;
- *   2. sinon, si une Opportunity existe avec le même `title` ET la même
- *      Company (même nom, ou toutes deux sans company) -> DUPLICATE.
- * Dans les deux cas, rien n'est créé (ni Opportunity, ni Company orpheline).
+ * Détection de doublon : si une Opportunity existe avec le même `title` ET
+ * la même Company (même nom, ou toutes deux sans company) -> DUPLICATE.
+ * Dans ce cas, rien n'est créé (ni Opportunity, ni Company orpheline).
  *
  * Ordre des opérations volontaire pour éviter tout effet de bord en cas
  * d'échec : la Company est résolue/créée en mémoire uniquement (pas de
@@ -104,13 +101,6 @@ final class ManualImporter implements OpportunityImporterInterface
 
     private function findDuplicate(RawOpportunityData $data, ?Company $company): ?Opportunity
     {
-        if (null !== $data->url && '' !== trim($data->url)) {
-            $byUrl = $this->opportunityRepository->findOneByUrl($data->url);
-            if (null !== $byUrl) {
-                return $byUrl;
-            }
-        }
-
         // Une Company nouvellement instanciée (pas encore persistée) ne
         // peut par définition être partagée par aucune Opportunity
         // existante : inutile d'interroger la base dans ce cas.
@@ -128,9 +118,7 @@ final class ManualImporter implements OpportunityImporterInterface
         $opportunity->setDescription($data->description);
         $opportunity->setCompany($company);
         $opportunity->setSource(OpportunitySource::MANUAL);
-        $opportunity->setUrl($data->url);
-        $opportunity->setDailyRateMin($data->dailyRateMin);
-        $opportunity->setDailyRateMax($data->dailyRateMax);
+        $opportunity->setDailyRate($data->dailyRate);
         $opportunity->setRemote($data->remote);
         $opportunity->setLocation($data->location);
         $opportunity->setTechnologies($data->technologies);

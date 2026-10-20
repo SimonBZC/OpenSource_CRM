@@ -21,10 +21,8 @@ final readonly class RawOpportunityData
     public function __construct(
         public string $title = '',
         public ?string $description = null,
-        public ?string $url = null,
         public ?string $companyName = null,
-        public ?int $dailyRateMin = null,
-        public ?int $dailyRateMax = null,
+        public ?int $dailyRate = null,
         public bool $remote = false,
         public ?string $location = null,
         public array $technologies = [],
@@ -46,10 +44,8 @@ final readonly class RawOpportunityData
         return new self(
             title: self::toStringOrDefault($data['title'] ?? null, ''),
             description: self::toStringOrNull($data['description'] ?? null),
-            url: self::toStringOrNull($data['url'] ?? null),
             companyName: self::toStringOrNull($data['company_name'] ?? $data['companyName'] ?? null),
-            dailyRateMin: self::toIntOrNull($data['daily_rate_min'] ?? $data['dailyRateMin'] ?? null),
-            dailyRateMax: self::toIntOrNull($data['daily_rate_max'] ?? $data['dailyRateMax'] ?? null),
+            dailyRate: self::toIntOrNull($data['daily_rate'] ?? $data['dailyRate'] ?? null),
             remote: self::toBool($data['remote'] ?? false),
             location: self::toStringOrNull($data['location'] ?? null),
             technologies: self::toStringList($data['technologies'] ?? []),

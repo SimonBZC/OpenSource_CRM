@@ -4,18 +4,21 @@ declare(strict_types=1);
 
 namespace App\DataFixtures;
 
+use App\Entity\Alert;
+use App\Entity\AlertRule;
 use App\Entity\Company;
 use App\Entity\Contact;
 use App\Entity\FollowUp;
 use App\Entity\Interaction;
+use App\Entity\MessageTemplate;
 use App\Entity\Opportunity;
-use App\Entity\Task;
+use App\Enum\AlertPriority;
+use App\Enum\AlertRuleType;
+use App\Enum\AlertStatus;
 use App\Enum\FollowUpStatus;
 use App\Enum\InteractionType;
 use App\Enum\OpportunitySource;
 use App\Enum\OpportunityStatus;
-use App\Enum\TaskPriority;
-use App\Enum\TaskStatus;
 use Doctrine\Bundle\FixturesBundle\Fixture;
 use Doctrine\Persistence\ObjectManager;
 
@@ -183,7 +186,9 @@ class AppFixtures extends Fixture
             ->setPhone('02 40 12 34 56')
             ->setLinkedin(null)
             ->setCompany($pixelSens)
-            ->setNotes('Point de contact administratif.');
+            ->setNotes('Point de contact administratif.')
+            // Contact inactif : masqué par défaut, mais encore lié à des relances et opportunités.
+            ->setActive(false);
 
         foreach ([$marie, $thomas, $camille, $julien, $sarah, $nicolas, $laure, $antoine, $elise] as $contact) {
             $manager->persist($contact);
@@ -199,10 +204,8 @@ class AppFixtures extends Fixture
             ->setCompany($lumo)
             ->setContact($marie)
             ->setSource(OpportunitySource::MALT)
-            ->setUrl('https://www.malt.fr/projects/12345')
             ->setStatus(OpportunityStatus::INTERVIEW)
-            ->setDailyRateMin(550)
-            ->setDailyRateMax(650)
+            ->setDailyRate(650)
             ->setRemote(true)
             ->setLocation('Lyon (hybride)')
             ->setDuration('6 mois')
@@ -218,10 +221,8 @@ class AppFixtures extends Fixture
             ->setCompany($synapse)
             ->setContact($thomas)
             ->setSource(OpportunitySource::LINKEDIN)
-            ->setUrl('https://www.linkedin.com/jobs/view/998877')
             ->setStatus(OpportunityStatus::WAITING)
-            ->setDailyRateMin(500)
-            ->setDailyRateMax(580)
+            ->setDailyRate(580)
             ->setRemote(false)
             ->setLocation('La Défense, Paris')
             ->setDuration('12 mois renouvelable')
@@ -237,10 +238,8 @@ class AppFixtures extends Fixture
             ->setCompany($pixelSens)
             ->setContact($camille)
             ->setSource(OpportunitySource::WEBSITE)
-            ->setUrl('https://pixeletsens.agency/recrutement/dev-ecommerce')
             ->setStatus(OpportunityStatus::TO_REVIEW)
-            ->setDailyRateMin(400)
-            ->setDailyRateMax(450)
+            ->setDailyRate(450)
             ->setRemote(true)
             ->setLocation('Remote')
             ->setDuration('2 mois')
@@ -256,10 +255,8 @@ class AppFixtures extends Fixture
             ->setCompany($banquePlus)
             ->setContact($julien)
             ->setSource(OpportunitySource::RECOMMENDATION)
-            ->setUrl(null)
             ->setStatus(OpportunityStatus::NEW)
-            ->setDailyRateMin(650)
-            ->setDailyRateMax(750)
+            ->setDailyRate(750)
             ->setRemote(false)
             ->setLocation('La Défense, Paris')
             ->setDuration('8 mois')
@@ -275,10 +272,8 @@ class AppFixtures extends Fixture
             ->setCompany($neoHealth)
             ->setContact($sarah)
             ->setSource(OpportunitySource::EMAIL)
-            ->setUrl(null)
             ->setStatus(OpportunityStatus::CONTACTED)
-            ->setDailyRateMin(500)
-            ->setDailyRateMax(600)
+            ->setDailyRate(600)
             ->setRemote(true)
             ->setLocation('Remote')
             ->setDuration('4 mois')
@@ -294,10 +289,8 @@ class AppFixtures extends Fixture
             ->setCompany($techTalent)
             ->setContact($nicolas)
             ->setSource(OpportunitySource::MANUAL)
-            ->setUrl(null)
             ->setStatus(OpportunityStatus::FOLLOW_UP)
-            ->setDailyRateMin(550)
-            ->setDailyRateMax(620)
+            ->setDailyRate(620)
             ->setRemote(true)
             ->setLocation('Remote')
             ->setDuration('3 mois')
@@ -313,10 +306,8 @@ class AppFixtures extends Fixture
             ->setCompany($lumo)
             ->setContact($marie)
             ->setSource(OpportunitySource::MALT)
-            ->setUrl('https://www.malt.fr/projects/54321')
             ->setStatus(OpportunityStatus::WON)
-            ->setDailyRateMin(600)
-            ->setDailyRateMax(700)
+            ->setDailyRate(700)
             ->setRemote(true)
             ->setLocation('Lyon (hybride)')
             ->setDuration('9 mois')
@@ -332,10 +323,8 @@ class AppFixtures extends Fixture
             ->setCompany($pixelSens)
             ->setContact($elise)
             ->setSource(OpportunitySource::WEBSITE)
-            ->setUrl(null)
             ->setStatus(OpportunityStatus::LOST)
-            ->setDailyRateMin(380)
-            ->setDailyRateMax(420)
+            ->setDailyRate(420)
             ->setRemote(true)
             ->setLocation('Remote')
             ->setDuration('1 mois')
@@ -351,10 +340,8 @@ class AppFixtures extends Fixture
             ->setCompany($synapse)
             ->setContact($laure)
             ->setSource(OpportunitySource::LINKEDIN)
-            ->setUrl(null)
             ->setStatus(OpportunityStatus::ARCHIVED)
-            ->setDailyRateMin(420)
-            ->setDailyRateMax(480)
+            ->setDailyRate(480)
             ->setRemote(false)
             ->setLocation('Paris')
             ->setDuration('2 mois')
@@ -370,10 +357,8 @@ class AppFixtures extends Fixture
             ->setCompany($neoHealth)
             ->setContact($antoine)
             ->setSource(OpportunitySource::EMAIL)
-            ->setUrl(null)
             ->setStatus(OpportunityStatus::NEW)
-            ->setDailyRateMin(500)
-            ->setDailyRateMax(580)
+            ->setDailyRate(580)
             ->setRemote(true)
             ->setLocation('Remote')
             ->setDuration('5 mois')
@@ -389,10 +374,8 @@ class AppFixtures extends Fixture
             ->setCompany($techTalent)
             ->setContact($nicolas)
             ->setSource(OpportunitySource::MANUAL)
-            ->setUrl(null)
             ->setStatus(OpportunityStatus::CONTACTED)
-            ->setDailyRateMin(550)
-            ->setDailyRateMax(650)
+            ->setDailyRate(650)
             ->setRemote(true)
             ->setLocation('Remote')
             ->setDuration('4 mois')
@@ -580,87 +563,113 @@ class AppFixtures extends Fixture
         }
 
         // ------------------------------------------------------------------
-        // Tasks
+        // Alerts
         // ------------------------------------------------------------------
 
-        $tasks = [
-            (new Task())
+        $alerts = [
+            (new Alert())
                 ->setTitle('Préparer les slides de présentation technique')
                 ->setDescription("Préparer un support pour l'entretien technique Lumo Énergie.")
                 ->setDueDate($now->modify('+2 days'))
-                ->setStatus(TaskStatus::IN_PROGRESS)
-                ->setPriority(TaskPriority::HIGH)
+                ->setStatus(AlertStatus::IN_PROGRESS)
+                ->setPriority(AlertPriority::HIGH)
                 ->setOpportunity($oppLumoBackend)->setContact($marie),
-            (new Task())
+            (new Alert())
                 ->setTitle('Mettre à jour le CV avec les dernières missions')
                 ->setDescription(null)
                 ->setDueDate($now->modify('-3 days'))
-                ->setStatus(TaskStatus::TODO)
-                ->setPriority(TaskPriority::MEDIUM)
+                ->setStatus(AlertStatus::TODO)
+                ->setPriority(AlertPriority::MEDIUM)
                 ->setOpportunity(null)->setContact(null),
-            (new Task())
+            (new Alert())
                 ->setTitle('Envoyer le devis pour la mission BanquePlus')
                 ->setDescription('Chiffrer et envoyer le devis détaillé pour la mission d\'architecture.')
                 ->setDueDate($now->modify('-1 day'))
-                ->setStatus(TaskStatus::TODO)
-                ->setPriority(TaskPriority::URGENT)
+                ->setStatus(AlertStatus::TODO)
+                ->setPriority(AlertPriority::URGENT)
                 ->setOpportunity($oppBanqueDirect)->setContact($julien),
-            (new Task())
+            (new Alert())
                 ->setTitle('Préparer les questions de cadrage NeoHealth')
                 ->setDescription(null)
                 ->setDueDate($now->modify('+1 day'))
-                ->setStatus(TaskStatus::TODO)
-                ->setPriority(TaskPriority::MEDIUM)
+                ->setStatus(AlertStatus::TODO)
+                ->setPriority(AlertPriority::MEDIUM)
                 ->setOpportunity($oppNeoHealthFullstack)->setContact($sarah),
-            (new Task())
+            (new Alert())
                 ->setTitle('Signer le contrat de mission data Lumo')
                 ->setDescription('Relire et signer le contrat-cadre avant démarrage.')
                 ->setDueDate($now->modify('-32 days'))
-                ->setStatus(TaskStatus::DONE)
-                ->setPriority(TaskPriority::HIGH)
+                ->setStatus(AlertStatus::DONE)
+                ->setPriority(AlertPriority::HIGH)
                 ->setCompletedAt($now->modify('-31 days'))
                 ->setOpportunity($oppLumoData)->setContact($marie),
-            (new Task())
+            (new Alert())
                 ->setTitle("Répondre à l'email de refus Pixel & Sens")
                 ->setDescription('Accuser réception poliment et rester en contact pour de futures opportunités.')
                 ->setDueDate($now->modify('-44 days'))
-                ->setStatus(TaskStatus::DONE)
-                ->setPriority(TaskPriority::LOW)
+                ->setStatus(AlertStatus::DONE)
+                ->setPriority(AlertPriority::LOW)
                 ->setCompletedAt($now->modify('-43 days'))
                 ->setOpportunity($oppPixelRefonte)->setContact($elise),
-            (new Task())
+            (new Alert())
                 ->setTitle('Relire les conditions générales TechTalent Partners')
                 ->setDescription(null)
                 ->setDueDate($now->modify('+4 days'))
-                ->setStatus(TaskStatus::TODO)
-                ->setPriority(TaskPriority::LOW)
+                ->setStatus(AlertStatus::TODO)
+                ->setPriority(AlertPriority::LOW)
                 ->setOpportunity($oppTechTalentApi)->setContact($nicolas),
-            (new Task())
+            (new Alert())
                 ->setTitle('Faire le point sur les missions en attente')
                 ->setDescription('Revue hebdomadaire du pipeline commercial.')
                 ->setDueDate($now->modify('-6 days'))
-                ->setStatus(TaskStatus::CANCELLED)
-                ->setPriority(TaskPriority::MEDIUM)
+                ->setStatus(AlertStatus::CANCELLED)
+                ->setPriority(AlertPriority::MEDIUM)
                 ->setOpportunity(null)->setContact(null),
-            (new Task())
+            (new Alert())
                 ->setTitle('Préparer proposition DevOps pour client e-santé')
                 ->setDescription("Rédiger une proposition technique pour la mission d'infrastructure.")
                 ->setDueDate($now->modify('+6 days'))
-                ->setStatus(TaskStatus::IN_PROGRESS)
-                ->setPriority(TaskPriority::HIGH)
+                ->setStatus(AlertStatus::IN_PROGRESS)
+                ->setPriority(AlertPriority::HIGH)
                 ->setOpportunity($oppTechTalentDevops)->setContact($nicolas),
-            (new Task())
+            (new Alert())
                 ->setTitle('Archiver les documents de la mission Synapse legacy')
                 ->setDescription(null)
                 ->setDueDate($now->modify('-80 days'))
-                ->setStatus(TaskStatus::DONE)
-                ->setPriority(TaskPriority::LOW)
+                ->setStatus(AlertStatus::DONE)
+                ->setPriority(AlertPriority::LOW)
                 ->setCompletedAt($now->modify('-79 days'))
                 ->setOpportunity($oppSynapseLegacy)->setContact($laure),
         ];
 
-        foreach ($tasks as $task) {
-            $manager->persist($task);
+        foreach ($alerts as $alert) {
+            $manager->persist($alert);
+        }
+
+        // ------------------------------------------------------------------
+        // Messages pré-construits
+        // ------------------------------------------------------------------
+
+        $messageTemplates = [
+            (new MessageTemplate())
+                ->setTitle('Relance après candidature')
+                ->setBody("Bonjour {%prenom%},\n\nJe me permets de revenir vers vous au sujet de ma candidature chez {%entreprise%}. Avez-vous pu avancer sur le sujet ?\n\nBien cordialement,\nSimon"),
+            (new MessageTemplate())
+                ->setTitle('Remerciement après entretien')
+                ->setBody("Bonjour {%prenom%} {%nom%},\n\nMerci pour notre échange. Je reste à votre disposition pour toute question.\n\nBien cordialement,\nSimon"),
+        ];
+
+        foreach ($messageTemplates as $messageTemplate) {
+            $manager->persist($messageTemplate);
+        }
+
+        // ------------------------------------------------------------------
+        // Règles d'alerte configurables : mêmes réglages que la migration
+        // (le chargement des fixtures vide la table alert_rule).
+        // ------------------------------------------------------------------
+
+        foreach (AlertRuleType::cases() as $ruleType) {
+            $manager->persist(new AlertRule($ruleType));
         }
 
         $manager->flush();

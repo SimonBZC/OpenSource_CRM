@@ -4,10 +4,14 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { use, useCallback, useEffect, useState } from "react";
 import { ContactFormFields } from "@/components/contacts/ContactFormFields";
+import { useInlineCompany } from "@/components/contacts/useInlineCompany";
 import { Badge } from "@/components/ui/Badge";
+import { MessageDialog } from "@/components/follow-ups/MessageDialog";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
+import { useNotify } from "@/components/ui/Toaster";
 import { ApiValidationError, toDisplayMessage } from "@/lib/api/errors";
-import { idFromIri } from "@/lib/api/iri";
+import { companyIri, idFromIri } from "@/lib/api/iri";
 import { companiesApi, contactsApi, opportunitiesApi } from "@/lib/api/resources";
 import type { Company, Contact, ContactWritePayload, Opportunity } from "@/lib/api/types";
 import { formatDate } from "@/lib/format";
@@ -20,6 +24,7 @@ export default function ContactDetailPage({
 }) {
   const { id } = use(params);
   const router = useRouter();
+  const notify = useNotify();
 
   const [contact, setContact] = useState<Contact | null>(null);
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -30,6 +35,9 @@ export default function ContactDetailPage({
   const [validationError, setValidationError] = useState<ApiValidationError | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [messageOpen, setMessageOpen] = useState(false);
+  const inlineCompany = useInlineCompany();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -50,6 +58,8 @@ export default function ContactDetailPage({
         jobTitle: data.jobTitle,
         company: data.company,
         notes: data.notes,
+        presentationSent: data.presentationSent,
+        active: data.active,
       });
       const relatedOpportunities = await Promise.all(
         data.opportunities
@@ -80,16 +90,27 @@ export default function ContactDetailPage({
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
-    setError(null);
     setValidationError(null);
     try {
-      const updated = await contactsApi.update(id, values);
-      setContact(updated);
+      const result = await inlineCompany.saveContact(values, (payload) =>
+        contactsApi.update(id, payload),
+      );
+      if (!result) return;
+      setContact(result.saved);
+      const createdCompany = result.createdCompany;
+      if (createdCompany) {
+        setCompanies((prev) =>
+          [...prev, createdCompany].sort((a, b) => a.name.localeCompare(b.name)),
+        );
+        setValues((prev) => ({ ...prev, company: companyIri(createdCompany.id) }));
+        inlineCompany.reset();
+      }
+      notify.success("Contact modifié");
     } catch (err) {
       if (err instanceof ApiValidationError) {
         setValidationError(err);
       } else {
-        setError(toDisplayMessage(err));
+        notify.error(toDisplayMessage(err));
       }
     } finally {
       setSaving(false);
@@ -97,15 +118,16 @@ export default function ContactDetailPage({
   }
 
   async function handleDelete() {
-    if (!confirm("Supprimer définitivement ce contact ?")) return;
+    if (deleting) return;
     setDeleting(true);
-    setError(null);
     try {
       await contactsApi.remove(id);
+      notify.success("Contact supprimé");
       router.push("/contacts");
     } catch (err) {
-      setError(toDisplayMessage(err));
+      notify.error(toDisplayMessage(err));
       setDeleting(false);
+      setConfirmOpen(false);
     }
   }
 
@@ -132,32 +154,39 @@ export default function ContactDetailPage({
           <Link href="/contacts" className="text-sm text-blue-700 hover:underline">
             ← Contacts
           </Link>
-          <h1 className="mt-1 text-2xl font-bold tracking-tight">
-            {[contact.firstName, contact.lastName].filter(Boolean).join(" ")}
-          </h1>
+          <div className="mt-1 flex items-center gap-3">
+            <h1 className="text-2xl font-bold tracking-tight">
+              {[contact.firstName, contact.lastName].filter(Boolean).join(" ")}
+            </h1>
+            {!contact.active && <Badge label="Inactif" className="bg-gray-100 text-gray-600" />}
+          </div>
           {linkedCompany && (
-            <Link
-              href={`/companies/${linkedCompany.id}`}
-              className="text-sm text-black/60 hover:underline"
-            >
-              {linkedCompany.name}
-            </Link>
+            <p className="text-sm text-black/60">{linkedCompany.name}</p>
           )}
         </div>
-        <button
-          type="button"
-          onClick={handleDelete}
-          disabled={deleting}
-          className="rounded-md border border-red-300 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
-        >
-          {deleting ? "Suppression..." : "Supprimer"}
-        </button>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setMessageOpen(true)}
+            className="rounded-md border border-blue-300 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50"
+          >
+            Message
+          </button>
+          <button
+            type="button"
+            onClick={() => setConfirmOpen(true)}
+            disabled={deleting}
+            className="rounded-md border border-red-300 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
+          >
+            {deleting ? "Suppression..." : "Supprimer"}
+          </button>
+        </div>
       </div>
 
+      {/* Erreur de chargement partiel (ex. opportunités liées) : reste en bandeau. */}
       <div className="mt-4">
         <ErrorBanner message={error} />
       </div>
-
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
         <form onSubmit={handleSave} className="lg:col-span-2">
           <div className="rounded-lg border border-black/10 bg-white p-6">
@@ -166,6 +195,8 @@ export default function ContactDetailPage({
               onChange={onChange}
               validationError={validationError}
               companies={companies}
+              inlineCompany={inlineCompany}
+              onError={(err) => notify.error(toDisplayMessage(err))}
             />
           </div>
           <div className="mt-4">
@@ -212,6 +243,17 @@ export default function ContactDetailPage({
           </div>
         </div>
       </div>
+
+      <MessageDialog open={messageOpen} contactId={contact.id} onClose={() => setMessageOpen(false)} />
+
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Supprimer ce contact ?"
+        message={`Le contact « ${[contact.firstName, contact.lastName].filter(Boolean).join(" ")} » sera supprimé définitivement.`}
+        busy={deleting}
+        onConfirm={handleDelete}
+        onCancel={() => setConfirmOpen(false)}
+      />
     </div>
   );
 }

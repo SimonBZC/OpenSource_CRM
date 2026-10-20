@@ -39,11 +39,18 @@ export type CompanySource = OpportunitySource;
 export const FOLLOW_UP_STATUSES = ["todo", "done", "cancelled"] as const;
 export type FollowUpStatus = (typeof FOLLOW_UP_STATUSES)[number];
 
-export const TASK_STATUSES = ["todo", "in_progress", "done", "cancelled"] as const;
-export type TaskStatus = (typeof TASK_STATUSES)[number];
+export const ALERT_STATUSES = ["todo", "in_progress", "done", "cancelled"] as const;
+export type AlertStatus = (typeof ALERT_STATUSES)[number];
 
-export const TASK_PRIORITIES = ["low", "medium", "high", "urgent"] as const;
-export type TaskPriority = (typeof TASK_PRIORITIES)[number];
+export const ALERT_PRIORITIES = ["low", "medium", "high", "urgent"] as const;
+export type AlertPriority = (typeof ALERT_PRIORITIES)[number];
+
+export const ALERT_RULE_TYPES = [
+  "contact_follow_up_stale",
+  "opportunity_no_answer",
+  "contact_not_presented",
+] as const;
+export type AlertRuleType = (typeof ALERT_RULE_TYPES)[number];
 
 export const INTERACTION_TYPES = [
   "email",
@@ -90,6 +97,10 @@ export interface Contact {
   jobTitle: string | null;
   company: Iri | null;
   notes: string | null;
+  /** Case « Je me suis présenté » (règle d'alerte contact_not_presented). */
+  presentationSent: boolean;
+  /** Case « Contact actif » : un inactif est masqué par défaut et ignoré par les règles d'alerte. */
+  active: boolean;
   createdAt: string;
   interactions: Iri[];
   opportunities: Iri[];
@@ -102,10 +113,8 @@ export interface Opportunity {
   company: Iri | null;
   contact: Iri | null;
   source: OpportunitySource | null;
-  url: string | null;
   status: OpportunityStatus;
-  dailyRateMin: number | null;
-  dailyRateMax: number | null;
+  dailyRate: number | null;
   remote: boolean | null;
   location: string | null;
   duration: string | null;
@@ -116,9 +125,11 @@ export interface Opportunity {
   notes: string | null;
   createdAt: string;
   updatedAt: string;
+  /** Date du dernier changement effectif de statut (lecture seule). */
+  statusChangedAt: string;
   interactions: Iri[];
   followUps: Iri[];
-  tasks: Iri[];
+  alerts: Iri[];
   companyName: string | null;
 }
 
@@ -135,17 +146,19 @@ export interface FollowUp {
   opportunity: Iri | null;
 }
 
-export interface Task {
+export interface Alert {
   id: number;
   title: string;
   description: string | null;
   dueDate: string | null;
-  status: TaskStatus;
-  priority: TaskPriority | null;
+  status: AlertStatus;
+  priority: AlertPriority | null;
   createdAt: string;
   completedAt: string | null;
   opportunity: Iri | null;
   contact: Iri | null;
+  /** Règle configurable ayant créé l'alerte (null pour une alerte manuelle). Lecture seule. */
+  ruleType: AlertRuleType | null;
 }
 
 export interface Interaction {
@@ -157,6 +170,27 @@ export interface Interaction {
   company: Iri | null;
   opportunity: Iri | null;
   createdAt: string;
+}
+
+/** Modèle de message pré-construit (Paramètres > Messages). */
+export interface MessageTemplate {
+  id: number;
+  title: string;
+  /** Corps pouvant contenir les indicateurs {%prenom%}, {%nom%}, {%entreprise%}. */
+  body: string;
+  createdAt: string;
+}
+
+/** Règle d'alerte configurable (Paramètres > Règles). Catalogue fixe : ni création ni suppression. */
+export interface AlertRule {
+  id: number;
+  type: AlertRuleType;
+  /** Libellé français fourni par l'API. */
+  label: string;
+  enabled: boolean;
+  /** Délai en jours, entier positif ou nul. */
+  delayDays: number;
+  priority: AlertPriority;
 }
 
 // ---------------------------------------------------------------------------
@@ -189,6 +223,8 @@ export type ContactWritePayload = Partial<
     | "jobTitle"
     | "company"
     | "notes"
+    | "presentationSent"
+    | "active"
   >
 >;
 
@@ -200,10 +236,8 @@ export type OpportunityWritePayload = Partial<
     | "company"
     | "contact"
     | "source"
-    | "url"
     | "status"
-    | "dailyRateMin"
-    | "dailyRateMax"
+    | "dailyRate"
     | "remote"
     | "location"
     | "duration"
@@ -220,12 +254,41 @@ export type FollowUpWritePayload = Partial<
   >
 >;
 
-export type TaskWritePayload = Partial<
+export type AlertWritePayload = Partial<
   Pick<
-    Task,
+    Alert,
     "title" | "description" | "dueDate" | "status" | "priority" | "completedAt" | "opportunity" | "contact"
   >
 >;
+
+export type AlertRuleWritePayload = Partial<Pick<AlertRule, "enabled" | "delayDays" | "priority">>;
+
+export type MessageTemplateWritePayload = Partial<Pick<MessageTemplate, "title" | "body">>;
+
+// ---------------------------------------------------------------------------
+// Rendu d'un modèle de message pour un contact
+// GET /api/message_templates/{id}/render?contact={id}
+// ---------------------------------------------------------------------------
+
+export interface RenderedMessage {
+  title: string;
+  /** Corps rendu : les indicateurs sans donnée y restent tels quels. */
+  body: string;
+  /** Clés des indicateurs présents dans le corps mais sans donnée (ex. "prenom"). */
+  missing: string[];
+}
+
+// ---------------------------------------------------------------------------
+// Vérification des règles d'alerte
+// POST /api/alert_rules/evaluate
+// ---------------------------------------------------------------------------
+
+export interface AlertRuleEvaluation {
+  /** Nombre total d'alertes créées. */
+  created: number;
+  /** Nombre d'alertes créées par type de règle (0 pour une règle désactivée). */
+  byRule: Partial<Record<AlertRuleType, number>>;
+}
 
 // ---------------------------------------------------------------------------
 // Analyse IA d'une opportunité (Phase 7)

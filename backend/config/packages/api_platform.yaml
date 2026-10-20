@@ -2,7 +2,7 @@ api_platform:
     title: FreeCRM API
     description: >
         API locale de gestion de la prospection freelance (entreprises, contacts,
-        opportunités, interactions, relances, tâches). Application strictement
+        opportunités, interactions, relances, alertes). Application strictement
         locale : aucune authentification.
     version: 1.0.0
     defaults:

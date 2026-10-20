@@ -6,6 +6,7 @@ namespace App\Repository;
 
 use App\Entity\Company;
 use App\Entity\Opportunity;
+use App\Enum\OpportunityStatus;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -20,28 +21,11 @@ class OpportunityRepository extends ServiceEntityRepository
     }
 
     /**
-     * Recherche une Opportunity existante portant exactement cette url.
-     *
-     * Utilisé par App\Import\ManualImporter pour la détection de doublon :
-     * une url identique est considérée comme la même annonce, quelle que
-     * soit la source.
-     */
-    public function findOneByUrl(string $url): ?Opportunity
-    {
-        return $this->createQueryBuilder('o')
-            ->andWhere('o.url = :url')
-            ->setParameter('url', $url)
-            ->setMaxResults(1)
-            ->getQuery()
-            ->getOneOrNullResult();
-    }
-
-    /**
      * Recherche une Opportunity existante portant exactement ce titre et
      * rattachée à la Company donnée (ou sans Company si $company est null).
      *
-     * Utilisé par App\Import\ManualImporter pour la détection de doublon en
-     * l'absence d'url : deux annonces au même titre pour la même entreprise
+     * Utilisé par App\Import\ManualImporter pour la détection de doublon :
+     * deux annonces au même titre pour la même entreprise
      * (ou toutes deux sans entreprise) sont considérées comme la même
      * opportunité.
      */
@@ -60,5 +44,22 @@ class OpportunityRepository extends ServiceEntityRepository
         }
 
         return $qb->getQuery()->getOneOrNullResult();
+    }
+
+    /**
+     * Opportunités ayant l'un des statuts donnés (règle opportunity_no_answer).
+     *
+     * @param list<OpportunityStatus> $statuses
+     *
+     * @return list<Opportunity>
+     */
+    public function findByStatuses(array $statuses): array
+    {
+        return $this->createQueryBuilder('o')
+            ->andWhere('o.status IN (:statuses)')
+            ->setParameter('statuses', $statuses)
+            ->orderBy('o.id', 'ASC')
+            ->getQuery()
+            ->getResult();
     }
 }

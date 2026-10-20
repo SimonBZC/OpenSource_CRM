@@ -31,10 +31,8 @@ final class OpportunityAnalyzerTest extends TestCase
             title: 'Développeur Symfony senior',
             description: 'Mission longue durée sur une plateforme SaaS.',
             companyName: 'Acme Corp',
-            url: 'https://example.com/mission',
             technologies: ['PHP', 'Symfony'],
-            dailyRateMin: 400,
-            dailyRateMax: 600,
+            dailyRate: 600,
             remote: true,
             location: 'Paris',
             duration: '6 mois',
@@ -99,7 +97,8 @@ final class OpportunityAnalyzerTest extends TestCase
                 self::callback(static function (string $prompt) use ($input): bool {
                     return str_contains($prompt, $input->title)
                         && str_contains($prompt, (string) $input->companyName)
-                        && str_contains($prompt, (string) $input->location);
+                        && str_contains($prompt, (string) $input->location)
+                        && str_contains($prompt, 'Daily rate: '.$input->dailyRate);
                 }),
                 self::callback(static fn (?string $systemPrompt): bool => null !== $systemPrompt && '' !== trim($systemPrompt)),
             )

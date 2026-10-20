@@ -27,7 +27,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  *
  * Ergonomie des données brutes (JSON, clés en snake_case ou camelCase, voir
  * App\Import\RawOpportunityData::fromArray) :
- *   - `--data='{"title":"...","url":"..."}'` pour un JSON inline ;
+ *   - `--data='{"title":"...","daily_rate":600}'` pour un JSON inline ;
  *   - `--file=chemin.json` pour lire le JSON depuis un fichier.
  * Si les deux sont fournies, `--data` est prioritaire. Si aucune n'est
  * fournie, un objet vide est utilisé (utile uniquement pour tester le
@@ -66,7 +66,7 @@ final class ImportOpportunityCommand extends Command
                 'data',
                 null,
                 InputOption::VALUE_REQUIRED,
-                'Données brutes au format JSON, ex. \'{"title":"...","url":"..."}\'.',
+                'Données brutes au format JSON, ex. \'{"title":"...","daily_rate":600}\'.',
             )
             ->addOption(
                 'file',
