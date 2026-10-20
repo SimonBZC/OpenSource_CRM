@@ -120,40 +120,18 @@ export function OpportunityFormFields({
       </div>
 
       <div>
-        <label className="block text-sm font-medium">URL</label>
-        <input
-          type="text"
-          value={values.url ?? ""}
-          onChange={(e) => onChange("url", e.target.value)}
-          className="mt-1 w-full rounded-md border border-black/15 px-3 py-2 text-sm outline-none focus:border-blue-500"
-        />
-        <FieldError message={validationError?.messageFor("url")} />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium">TJM min (€)</label>
+        <label className="block text-sm font-medium">TJM (€)</label>
         <input
           type="number"
-          value={values.dailyRateMin ?? ""}
+          min={0}
+          step={1}
+          value={values.dailyRate ?? ""}
           onChange={(e) =>
-            onChange("dailyRateMin", e.target.value === "" ? null : Number(e.target.value))
+            onChange("dailyRate", e.target.value === "" ? null : Number(e.target.value))
           }
           className="mt-1 w-full rounded-md border border-black/15 px-3 py-2 text-sm outline-none focus:border-blue-500"
         />
-        <FieldError message={validationError?.messageFor("dailyRateMin")} />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium">TJM max (€)</label>
-        <input
-          type="number"
-          value={values.dailyRateMax ?? ""}
-          onChange={(e) =>
-            onChange("dailyRateMax", e.target.value === "" ? null : Number(e.target.value))
-          }
-          className="mt-1 w-full rounded-md border border-black/15 px-3 py-2 text-sm outline-none focus:border-blue-500"
-        />
-        <FieldError message={validationError?.messageFor("dailyRateMax")} />
+        <FieldError message={validationError?.messageFor("dailyRate")} />
       </div>
 
       <div className="flex items-center gap-2 pt-6">

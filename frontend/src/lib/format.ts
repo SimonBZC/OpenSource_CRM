@@ -61,10 +61,11 @@ export function isOverdue(iso: string | null | undefined): boolean {
   return date.getTime() < Date.now();
 }
 
-/** Formate une fourchette de TJM. */
-export function formatDailyRate(min: number | null, max: number | null): string {
-  if (min && max) return `${min}–${max} €/j`;
-  if (min) return `à partir de ${min} €/j`;
-  if (max) return `jusqu'à ${max} €/j`;
-  return "—";
+/**
+ * Formate un TJM. `undefined` est traité comme absent : API Platform omet les
+ * champs nuls de ses réponses.
+ */
+export function formatDailyRate(dailyRate: number | null | undefined): string {
+  if (dailyRate === null || dailyRate === undefined) return "—";
+  return `${dailyRate} €/j`;
 }

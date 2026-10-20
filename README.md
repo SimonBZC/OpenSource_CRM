@@ -105,8 +105,10 @@ renvoie la description JSON-LD/Hydra.
 - **Actions sur la liste des contacts** : « Nouvelle opportunité » et « Nouvelle relance » ouvrent
   le formulaire pré-rempli via `?contact={id}&company={id}` (`company` omis si le contact n'en a pas).
 - **Opportunités** : statut (9 valeurs, extensible), source (7 valeurs, extensible), TJM
-  min/max, remote, technologies, score, raison du score. Filtres avancés : statut, source,
-  score, technologie, remote, TJM, dates, recherche textuelle.
+  unique (`dailyRate`, ≥ 0), remote, technologies, score, raison du score (le score s'affiche
+  sur la fiche, pas dans la liste). Filtres de la liste : statut, source, technologie, remote,
+  TJM ≥ / TJM ≤ (`dailyRate[gte]`/`dailyRate[lte]`), dates, recherche textuelle. L'API garde
+  le filtre `score[gte|lte]` (utilisé par le Dashboard).
 - **Messages pré-construits** (Paramètres > Messages, `/settings/messages`) : titre (unique, casse
   et espaces en début/fin ignorés, 422 sur `title`) et corps avec indicateurs `{%prenom%}`, `{%nom%}`,
   `{%entreprise%}` (entreprise du contact). API : CRUD `/api/message_templates` et
@@ -124,7 +126,8 @@ renvoie la description JSON-LD/Hydra.
   existante. Le LLM ne persiste jamais rien lui-même : le backend valide la réponse
   structurée puis décide quoi appliquer (`score`/`scoreReason` toujours mis à jour,
   les autres champs — technologies, TJM, localisation... — uniquement s'ils étaient vides,
-  pour ne jamais écraser une saisie manuelle).
+  pour ne jamais écraser une saisie manuelle). Le LLM renvoie une fourchette `tjmMin`/`tjmMax` ;
+  le TJM de l'opportunité reçoit `tjmMax`, à défaut `tjmMin`.
 - Sans `OPENAI_API_KEY` configurée, l'endpoint répond `503` proprement — le reste du CRM
   fonctionne normalement.
 
@@ -145,7 +148,8 @@ renvoie la description JSON-LD/Hydra.
 
 - `App\Import\OpportunityImporterInterface` : reçoit une opportunité standardisée
   (`RawOpportunityData`) et retourne un résultat d'import structuré.
-- `ManualImporter` : fonctionnel, réutilise le chemin de création standard.
+- `ManualImporter` : fonctionnel, réutilise le chemin de création standard. Doublon = même
+  titre et même entreprise (ou toutes deux sans entreprise). TJM via la clé `daily_rate`.
 - `LinkedInImporter` / `MaltImporter` : **placeholders volontaires**, lèvent une
   exception explicite (`NotImplementedImporterException`), aucun appel réseau ni
   scraping — conformément au choix de ne pas automatiser LinkedIn dans ce MVP.

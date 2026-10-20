@@ -173,39 +173,31 @@ final class OpportunityTest extends TestCase
         self::assertNull($alert->getOpportunity());
     }
 
-    public function testDailyRateMinGreaterThanMaxProducesOneViolation(): void
+    public function testNegativeDailyRateProducesViolationOnDailyRate(): void
     {
-        $opportunity = $this->makeValidOpportunity()
-            ->setDailyRateMin(600)
-            ->setDailyRateMax(500);
+        $opportunity = $this->makeValidOpportunity()->setDailyRate(-1);
 
         $violations = self::$validator->validate($opportunity);
 
         self::assertCount(1, $violations);
-        self::assertSame(
-            'Le TJM minimum doit être inférieur ou égal au TJM maximum.',
-            $violations[0]->getMessage(),
-        );
+        self::assertSame('dailyRate', $violations[0]->getPropertyPath());
+        self::assertSame('Le TJM doit être positif ou nul.', $violations[0]->getMessage());
     }
 
     /**
-     * @return iterable<string, array{0: ?int, 1: ?int}>
+     * @return iterable<string, array{0: ?int}>
      */
     public static function validDailyRateProvider(): iterable
     {
-        yield 'min equals max' => [500, 500];
-        yield 'min lower than max' => [400, 600];
-        yield 'min null, max set' => [null, 600];
-        yield 'min set, max null' => [400, null];
-        yield 'both null' => [null, null];
+        yield 'null' => [null];
+        yield 'zero' => [0];
+        yield 'positive' => [600];
     }
 
     #[DataProvider('validDailyRateProvider')]
-    public function testDailyRateProducesNoViolationWhenConsistent(?int $min, ?int $max): void
+    public function testDailyRateProducesNoViolationWhenNullOrPositive(?int $dailyRate): void
     {
-        $opportunity = $this->makeValidOpportunity()
-            ->setDailyRateMin($min)
-            ->setDailyRateMax($max);
+        $opportunity = $this->makeValidOpportunity()->setDailyRate($dailyRate);
 
         $violations = self::$validator->validate($opportunity);
 
@@ -265,33 +257,6 @@ final class OpportunityTest extends TestCase
         $violations = self::$validator->validate($opportunity);
 
         self::assertCount(0, $violations);
-    }
-
-    public function testInvalidUrlProducesViolation(): void
-    {
-        $opportunity = $this->makeValidOpportunity()->setUrl('not-a-valid-url');
-
-        $violations = self::$validator->validate($opportunity);
-
-        self::assertGreaterThan(0, \count($violations));
-    }
-
-    public function testValidUrlProducesNoViolation(): void
-    {
-        $opportunity = $this->makeValidOpportunity()->setUrl('https://example.com/mission');
-
-        $violations = self::$validator->validate($opportunity);
-
-        self::assertCount(0, $violations);
-    }
-
-    public function testUrlTooLongProducesViolation(): void
-    {
-        $opportunity = $this->makeValidOpportunity()->setUrl('https://example.com/' . str_repeat('a', 512));
-
-        $violations = self::$validator->validate($opportunity);
-
-        self::assertGreaterThan(0, \count($violations));
     }
 
     public function testLocationTooLongProducesViolation(): void

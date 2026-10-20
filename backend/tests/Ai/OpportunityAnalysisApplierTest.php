@@ -93,79 +93,61 @@ final class OpportunityAnalysisApplierTest extends TestCase
         self::assertNotContains('technologies', $applied);
     }
 
-    // --- dailyRateMin / dailyRateMax -------------------------------------------
+    // --- dailyRate : tjmMax ?? tjmMin, jamais écrasé ----------------------------
 
-    public function testBothDailyRatesAppliedWhenBothCurrentlyNull(): void
+    public function testDailyRateTakesTjmMaxWhenCurrentlyNull(): void
     {
         $applier = new OpportunityAnalysisApplier();
 
         $opportunity = $this->makeOpportunity();
-        $applied = $applier->apply($opportunity, $this->makeAnalysis(['tjmMin' => 400, 'tjmMax' => 600]));
+        $applied = $applier->apply($opportunity, $this->makeAnalysis(['tjmMin' => 500, 'tjmMax' => 600]));
 
-        self::assertSame(400, $opportunity->getDailyRateMin());
-        self::assertSame(600, $opportunity->getDailyRateMax());
-        self::assertContains('dailyRateMin', $applied);
-        self::assertContains('dailyRateMax', $applied);
+        self::assertSame(600, $opportunity->getDailyRate());
+        self::assertContains('dailyRate', $applied);
     }
 
-    public function testDailyRateMinNotOverwrittenWhenAlreadyFilled(): void
+    public function testDailyRateFallsBackToTjmMinWhenTjmMaxIsNull(): void
     {
         $applier = new OpportunityAnalysisApplier();
 
-        $opportunity = $this->makeOpportunity()->setDailyRateMin(300);
-        $applied = $applier->apply($opportunity, $this->makeAnalysis(['tjmMin' => 900, 'tjmMax' => null]));
+        $opportunity = $this->makeOpportunity();
+        $applied = $applier->apply($opportunity, $this->makeAnalysis(['tjmMin' => 500, 'tjmMax' => null]));
 
-        self::assertSame(300, $opportunity->getDailyRateMin());
-        self::assertNull($opportunity->getDailyRateMax());
-        self::assertNotContains('dailyRateMin', $applied);
+        self::assertSame(500, $opportunity->getDailyRate());
+        self::assertContains('dailyRate', $applied);
     }
 
-    public function testDailyRateMaxNotOverwrittenWhenAlreadyFilled(): void
+    public function testDailyRateTakesTjmMaxWhenOnlyTjmMaxIsProvided(): void
     {
         $applier = new OpportunityAnalysisApplier();
 
-        $opportunity = $this->makeOpportunity()->setDailyRateMax(500);
-        $applied = $applier->apply($opportunity, $this->makeAnalysis(['tjmMin' => null, 'tjmMax' => 999]));
+        $opportunity = $this->makeOpportunity();
+        $applied = $applier->apply($opportunity, $this->makeAnalysis(['tjmMin' => null, 'tjmMax' => 650]));
 
-        self::assertSame(500, $opportunity->getDailyRateMax());
-        self::assertNull($opportunity->getDailyRateMin());
-        self::assertNotContains('dailyRateMax', $applied);
+        self::assertSame(650, $opportunity->getDailyRate());
+        self::assertContains('dailyRate', $applied);
     }
 
-    public function testDailyRateMinNotAppliedWhenItWouldExceedExistingMax(): void
+    public function testDailyRateNotOverwrittenWhenAlreadyFilled(): void
     {
         $applier = new OpportunityAnalysisApplier();
 
-        $opportunity = $this->makeOpportunity()->setDailyRateMax(400);
-        $applied = $applier->apply($opportunity, $this->makeAnalysis(['tjmMin' => 900, 'tjmMax' => null]));
+        $opportunity = $this->makeOpportunity()->setDailyRate(550);
+        $applied = $applier->apply($opportunity, $this->makeAnalysis(['tjmMin' => 500, 'tjmMax' => 600]));
 
-        self::assertNull($opportunity->getDailyRateMin());
-        self::assertSame(400, $opportunity->getDailyRateMax());
-        self::assertNotContains('dailyRateMin', $applied);
+        self::assertSame(550, $opportunity->getDailyRate());
+        self::assertNotContains('dailyRate', $applied);
     }
 
-    public function testDailyRateMaxNotAppliedWhenItWouldBeBelowExistingMin(): void
+    public function testDailyRateLeftNullWhenAnalysisProvidesNoRate(): void
     {
         $applier = new OpportunityAnalysisApplier();
 
-        $opportunity = $this->makeOpportunity()->setDailyRateMin(500);
-        $applied = $applier->apply($opportunity, $this->makeAnalysis(['tjmMin' => null, 'tjmMax' => 300]));
+        $opportunity = $this->makeOpportunity();
+        $applied = $applier->apply($opportunity, $this->makeAnalysis(['tjmMin' => null, 'tjmMax' => null]));
 
-        self::assertNull($opportunity->getDailyRateMax());
-        self::assertSame(500, $opportunity->getDailyRateMin());
-        self::assertNotContains('dailyRateMax', $applied);
-    }
-
-    public function testDailyRateMinAppliedAtExactBoundaryOfExistingMax(): void
-    {
-        // tjmMin == currentMax est autorisé (invariant min <= max, pas min < max).
-        $applier = new OpportunityAnalysisApplier();
-
-        $opportunity = $this->makeOpportunity()->setDailyRateMax(400);
-        $applied = $applier->apply($opportunity, $this->makeAnalysis(['tjmMin' => 400, 'tjmMax' => null]));
-
-        self::assertSame(400, $opportunity->getDailyRateMin());
-        self::assertContains('dailyRateMin', $applied);
+        self::assertNull($opportunity->getDailyRate());
+        self::assertNotContains('dailyRate', $applied);
     }
 
     // --- location / duration / startDate ---------------------------------------
@@ -267,7 +249,7 @@ final class OpportunityAnalysisApplierTest extends TestCase
         ]));
 
         self::assertSame(
-            ['score', 'scoreReason', 'technologies', 'dailyRateMin', 'dailyRateMax', 'location', 'duration', 'startDate'],
+            ['score', 'scoreReason', 'technologies', 'dailyRate', 'location', 'duration', 'startDate'],
             $applied,
         );
     }
@@ -278,8 +260,7 @@ final class OpportunityAnalysisApplierTest extends TestCase
 
         $opportunity = $this->makeOpportunity()
             ->setTechnologies(['PHP'])
-            ->setDailyRateMin(300)
-            ->setDailyRateMax(500)
+            ->setDailyRate(500)
             ->setLocation('Paris')
             ->setDuration('6 mois')
             ->setStartDate(new \DateTimeImmutable('2026-01-15'));

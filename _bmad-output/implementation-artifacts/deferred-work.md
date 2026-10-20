@@ -28,3 +28,9 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-relances-icones-et-terminees.md`
   summary: Tester le branchement de FollowUpDeletionGuardProcessor sur l'opération Delete de FollowUp (test kernel ou HTTP).
   evidence: Le test unitaire construit le processor à la main ; retirer `processor:` de l'opération Delete laisserait la suite verte.
+- source_spec: `_bmad-output/implementation-artifacts/spec-opportunites-tjm-unique-sans-url.md`
+  summary: Tester automatiquement la migration Version20261020140000 (quatre cas COALESCE, aller-retour up/down) et les filtres API dailyRate/score.
+  evidence: Aucun harnais de test de migration ni HTTP ; inverser le COALESCE ou retirer `score` du RangeFilter laisserait la suite verte.
+- source_spec: `_bmad-output/implementation-artifacts/spec-opportunites-tjm-unique-sans-url.md`
+  summary: Vérifier l'absence de TJM négatifs dans la vraie base (non vérifié, medium si présents) ; sinon les opportunités concernées renvoient 422 à la prochaine modification.
+  evidence: Les anciens champs n'avaient aucune contrainte de signe ; la migration copie les valeurs telles quelles.

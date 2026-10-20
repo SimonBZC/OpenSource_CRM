@@ -20,28 +20,11 @@ class OpportunityRepository extends ServiceEntityRepository
     }
 
     /**
-     * Recherche une Opportunity existante portant exactement cette url.
-     *
-     * Utilisé par App\Import\ManualImporter pour la détection de doublon :
-     * une url identique est considérée comme la même annonce, quelle que
-     * soit la source.
-     */
-    public function findOneByUrl(string $url): ?Opportunity
-    {
-        return $this->createQueryBuilder('o')
-            ->andWhere('o.url = :url')
-            ->setParameter('url', $url)
-            ->setMaxResults(1)
-            ->getQuery()
-            ->getOneOrNullResult();
-    }
-
-    /**
      * Recherche une Opportunity existante portant exactement ce titre et
      * rattachée à la Company donnée (ou sans Company si $company est null).
      *
-     * Utilisé par App\Import\ManualImporter pour la détection de doublon en
-     * l'absence d'url : deux annonces au même titre pour la même entreprise
+     * Utilisé par App\Import\ManualImporter pour la détection de doublon :
+     * deux annonces au même titre pour la même entreprise
      * (ou toutes deux sans entreprise) sont considérées comme la même
      * opportunité.
      */

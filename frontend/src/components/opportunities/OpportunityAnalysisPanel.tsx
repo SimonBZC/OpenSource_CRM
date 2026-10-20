@@ -3,8 +3,7 @@ import type { OpportunityAnalyzeResponse } from "@/lib/api/types";
 /** Libellés FR des champs d'opportunité, pour afficher les champs mis à jour par l'IA. */
 const FIELD_LABELS: Record<string, string> = {
   technologies: "Technologies",
-  dailyRateMin: "TJM min",
-  dailyRateMax: "TJM max",
+  dailyRate: "TJM",
   location: "Lieu",
   duration: "Durée",
   startDate: "Date de début",

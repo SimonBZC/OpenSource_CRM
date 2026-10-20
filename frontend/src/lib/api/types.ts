@@ -102,10 +102,8 @@ export interface Opportunity {
   company: Iri | null;
   contact: Iri | null;
   source: OpportunitySource | null;
-  url: string | null;
   status: OpportunityStatus;
-  dailyRateMin: number | null;
-  dailyRateMax: number | null;
+  dailyRate: number | null;
   remote: boolean | null;
   location: string | null;
   duration: string | null;
@@ -209,10 +207,8 @@ export type OpportunityWritePayload = Partial<
     | "company"
     | "contact"
     | "source"
-    | "url"
     | "status"
-    | "dailyRateMin"
-    | "dailyRateMax"
+    | "dailyRate"
     | "remote"
     | "location"
     | "duration"
