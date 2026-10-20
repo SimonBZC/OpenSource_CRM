@@ -48,3 +48,5 @@ Passe 1 (blind-hunter). Aucun accès à la vraie base.
 - Pas de `disabled` pendant « Marquer comme faite » — low — rejeté : même comportement que le bouton texte d'avant.
 - Spec `in-progress` et pas de vérification visuelle — low — spec finalisée ; la vérification visuelle reste à faire par Simon (signalée).
 - Commentaires flous sur la partie imposée par l'API — low — patch : commentaires précisés.
+
+- Décision de Simon (2026-10-20) : une relance terminée peut être rouverte ; elle redevient alors supprimable. Comportement voulu, aucune modification. L'entrée correspondante de deferred-work est donc tranchée.
