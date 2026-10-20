@@ -84,7 +84,8 @@ function NewFollowUpPageContent() {
     setValidationError(null);
     try {
       const created = await followUpsApi.create(values);
-      router.push(`/follow-ups/${created.id}`);
+      // Depuis la colonne Actions de la liste des contacts : retour à cette liste.
+      router.push(prefilledContactId !== null ? "/contacts" : `/follow-ups/${created.id}`);
     } catch (err) {
       if (err instanceof ApiValidationError) {
         setValidationError(err);

@@ -149,12 +149,7 @@ export default function ContactDetailPage({
             {[contact.firstName, contact.lastName].filter(Boolean).join(" ")}
           </h1>
           {linkedCompany && (
-            <Link
-              href={`/companies/${linkedCompany.id}`}
-              className="text-sm text-black/60 hover:underline"
-            >
-              {linkedCompany.name}
-            </Link>
+            <p className="text-sm text-black/60">{linkedCompany.name}</p>
           )}
         </div>
         <button

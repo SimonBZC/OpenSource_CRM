@@ -92,7 +92,7 @@ renvoie la description JSON-LD/Hydra.
 
 - **Dashboard** (`/dashboard`) orienté action : opportunités à traiter, relances du jour /
   en retard, alertes à traiter, opportunités à fort potentiel, opportunités récentes.
-- **Entreprises, contacts, opportunités** (`/companies`, `/contacts`, `/opportunities`) :
+- **Contacts, opportunités** (`/contacts`, `/opportunities`) — les entreprises n'ont plus de page dédiée : elles se créent depuis le formulaire contact et restent exposées par l'API (`/api/companies`) :
   listes filtrables/triables, fiches détaillées, création/édition.
 - **Unicité des entreprises** : deux entreprises ne peuvent pas porter le même nom (casse et
   espaces en début/fin ignorés). L'API refuse un doublon sur POST/PUT/PATCH `/api/companies`
@@ -256,7 +256,7 @@ Postgres ouvert pendant l'opération corrompt la base.
 │   ├── migrations/
 │   └── tests/
 ├── frontend/
-│   └── src/app/            dashboard/, companies/, contacts/, opportunities/, follow-ups/, alerts/, settings/
+│   └── src/app/            dashboard/, contacts/, opportunities/, follow-ups/, alerts/, settings/
 ├── docker-compose.yml      Les 3 services
 ├── .env.example            Variables surchargeables
 └── README.md

@@ -132,7 +132,18 @@ export default function FollowUpsPage() {
     }
   }
 
-  function linkedItem(followUp: FollowUp): { label: string; href: string } | null {
+  async function deleteFollowUp(followUp: FollowUp) {
+    if (!confirm(`Supprimer définitivement la relance « ${followUp.title} » ?`)) return;
+    setActionError(null);
+    try {
+      await followUpsApi.remove(followUp.id);
+      reload();
+    } catch (err) {
+      setActionError(toDisplayMessage(err));
+    }
+  }
+
+  function linkedItem(followUp: FollowUp): { label: string; href: string | null } | null {
     if (followUp.opportunity) {
       const id = idFromIri(followUp.opportunity);
       if (!id) return null;
@@ -146,7 +157,8 @@ export default function FollowUpsPage() {
     if (followUp.company) {
       const id = idFromIri(followUp.company);
       if (!id) return null;
-      return { label: `Entreprise : ${companyNames[id] ?? `#${id}`}`, href: `/companies/${id}` };
+      // Pas de page Entreprise : libellé seul.
+      return { label: `Entreprise : ${companyNames[id] ?? `#${id}`}`, href: null };
     }
     return null;
   }
@@ -242,17 +254,18 @@ export default function FollowUpsPage() {
                     />
                   </td>
                   <td className="px-4 py-3 text-black/70">
-                    {link ? (
+                    {link?.href ? (
                       <Link href={link.href} className="text-blue-700 hover:underline">
                         {link.label}
                       </Link>
                     ) : (
-                      "—"
+                      (link?.label ?? "—")
                     )}
                   </td>
                   <td className="px-4 py-3">
-                    {followUp.status === "todo" && (
-                      <div className="flex gap-2">
+                    <div className="flex gap-2">
+                      {followUp.status === "todo" && (
+                        <>
                         <button
                           type="button"
                           onClick={() => markDone(followUp)}
@@ -267,8 +280,16 @@ export default function FollowUpsPage() {
                         >
                           Annuler
                         </button>
-                      </div>
-                    )}
+                        </>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => deleteFollowUp(followUp)}
+                        className="rounded-md border border-red-300 px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-50"
+                      >
+                        Supprimer
+                      </button>
+                    </div>
                   </td>
                 </tr>
               );
