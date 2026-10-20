@@ -6,6 +6,7 @@ import { MessageDialog } from "@/components/follow-ups/MessageDialog";
 import { Badge } from "@/components/ui/Badge";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
+import { IconButton } from "@/components/ui/IconButton";
 import { Pagination } from "@/components/ui/Pagination";
 import { toDisplayMessage } from "@/lib/api/errors";
 import { idFromIri } from "@/lib/api/iri";
@@ -266,28 +267,30 @@ export default function FollowUpsPage() {
                   <td className="px-4 py-3">
                     <div className="flex gap-2">
                       {followUp.status === "todo" && (
-                        <button
-                          type="button"
+                        <IconButton
+                          icon="check"
+                          label="Marquer comme faite"
+                          tone="green"
                           onClick={() => markDone(followUp)}
-                          className="rounded-md border border-green-300 px-2 py-1 text-xs font-medium text-green-700 hover:bg-green-50"
-                        >
-                          Marquer comme faite
-                        </button>
+                        />
                       )}
-                      <button
-                        type="button"
-                        onClick={() => setMessageFollowUp(followUp)}
-                        className="rounded-md border border-blue-300 px-2 py-1 text-xs font-medium text-blue-700 hover:bg-blue-50"
-                      >
-                        Message
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setPendingDelete(followUp)}
-                        className="rounded-md border border-red-300 px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-50"
-                      >
-                        Supprimer
-                      </button>
+                      {/* pas de message ni de suppression pour une relance terminée. Seule la suppression est aussi refusée par l'API (409, FollowUpDeletionGuardProcessor). */}
+                      {followUp.status !== "done" && (
+                        <>
+                          <IconButton
+                            icon="message"
+                            label="Message"
+                            tone="blue"
+                            onClick={() => setMessageFollowUp(followUp)}
+                          />
+                          <IconButton
+                            icon="trash"
+                            label="Supprimer"
+                            tone="red"
+                            onClick={() => setPendingDelete(followUp)}
+                          />
+                        </>
+                      )}
                     </div>
                   </td>
                 </tr>

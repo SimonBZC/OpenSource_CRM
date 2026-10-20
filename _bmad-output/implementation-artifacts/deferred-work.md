@@ -19,3 +19,12 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-messages-predefinis.md`
   summary: Couvrir MessageTemplateRepository::findOneByTitleIgnoreCase et la route GET /api/message_templates/{id}/render par des tests sur base/HTTP.
   evidence: Le processor est testé avec un repository simulé et le contrôleur est appelé directement ; retirer LOWER/TRIM, inverser excludeId ou casser la route laisserait la suite verte.
+- source_spec: `_bmad-output/implementation-artifacts/spec-relances-icones-et-terminees.md`
+  summary: Mettre à jour FR-9 du PRD : plus de suppression ni de message pour une relance terminée, et actions en icônes dans la liste.
+  evidence: FR-9 indique encore qu'une relance se supprime « quel que soit son statut ».
+- source_spec: `_bmad-output/implementation-artifacts/spec-relances-icones-et-terminees.md`
+  summary: Décider avec Simon si une relance terminée peut être rouverte (repassée « À faire » ou « Annulée »), ce qui la rend de nouveau supprimable.
+  evidence: Le formulaire de la fiche et PATCH /api/follow_ups/{id} permettent de changer le statut d'une relance terminée ; le refus 409 ne porte que sur DELETE.
+- source_spec: `_bmad-output/implementation-artifacts/spec-relances-icones-et-terminees.md`
+  summary: Tester le branchement de FollowUpDeletionGuardProcessor sur l'opération Delete de FollowUp (test kernel ou HTTP).
+  evidence: Le test unitaire construit le processor à la main ; retirer `processor:` de l'opération Delete laisserait la suite verte.

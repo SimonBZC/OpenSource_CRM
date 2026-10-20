@@ -141,23 +141,26 @@ export default function FollowUpDetailPage({ params }: { params: Promise<{ id: s
             />
           </div>
         </div>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={() => setMessageOpen(true)}
-            className="rounded-md border border-blue-300 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50"
-          >
-            Message
-          </button>
-          <button
-            type="button"
-            onClick={() => setConfirmOpen(true)}
-            disabled={deleting}
-            className="rounded-md border border-red-300 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
-          >
-            {deleting ? "Suppression..." : "Supprimer"}
-          </button>
-        </div>
+        {/* Statut enregistré : pas de message ni de suppression pour une relance terminée. Seule la suppression est aussi refusée par l'API (409, FollowUpDeletionGuardProcessor). */}
+        {followUp.status !== "done" && (
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setMessageOpen(true)}
+              className="rounded-md border border-blue-300 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50"
+            >
+              Message
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirmOpen(true)}
+              disabled={deleting}
+              className="rounded-md border border-red-300 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
+            >
+              {deleting ? "Suppression..." : "Supprimer"}
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="mt-4">
