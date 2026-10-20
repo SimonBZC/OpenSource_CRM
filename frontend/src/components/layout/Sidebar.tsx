@@ -21,7 +21,10 @@ const NAV_ITEMS: NavItem[] = [
   {
     href: "/settings",
     label: "Paramètres",
-    children: [{ href: "/settings/messages", label: "Messages" }],
+    children: [
+      { href: "/settings/messages", label: "Messages" },
+      { href: "/settings/rules", label: "Règles" },
+    ],
   },
 ];
 

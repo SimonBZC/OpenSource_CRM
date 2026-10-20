@@ -6,6 +6,7 @@ namespace App\Repository;
 
 use App\Entity\Company;
 use App\Entity\Opportunity;
+use App\Enum\OpportunityStatus;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -43,5 +44,22 @@ class OpportunityRepository extends ServiceEntityRepository
         }
 
         return $qb->getQuery()->getOneOrNullResult();
+    }
+
+    /**
+     * Opportunités ayant l'un des statuts donnés (règle opportunity_no_answer).
+     *
+     * @param list<OpportunityStatus> $statuses
+     *
+     * @return list<Opportunity>
+     */
+    public function findByStatuses(array $statuses): array
+    {
+        return $this->createQueryBuilder('o')
+            ->andWhere('o.status IN (:statuses)')
+            ->setParameter('statuses', $statuses)
+            ->orderBy('o.id', 'ASC')
+            ->getQuery()
+            ->getResult();
     }
 }

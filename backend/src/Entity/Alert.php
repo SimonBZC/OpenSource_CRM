@@ -18,6 +18,7 @@ use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
 use App\Enum\AlertPriority;
+use App\Enum\AlertRuleType;
 use App\Enum\AlertStatus;
 use App\Repository\AlertRepository;
 use Doctrine\DBAL\Types\Types;
@@ -87,6 +88,16 @@ class Alert
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     #[Groups(['alert:read', 'alert:write'])]
     private ?Contact $contact = null;
+
+    /**
+     * Type de la règle d'alerte configurable qui a créé cette alerte (null
+     * pour une alerte saisie à la main ou issue d'une autre automatisation).
+     * Sert à la déduplication : voir App\Automation\Scheduled\AlertRuleEvaluator.
+     */
+    #[ORM\Column(type: Types::STRING, length: 64, nullable: true, enumType: AlertRuleType::class)]
+    #[Groups(['alert:read'])]
+    #[ApiProperty(writable: false)]
+    private ?AlertRuleType $ruleType = null;
 
     public function __construct()
     {
@@ -202,6 +213,18 @@ class Alert
     public function setContact(?Contact $contact): static
     {
         $this->contact = $contact;
+
+        return $this;
+    }
+
+    public function getRuleType(): ?AlertRuleType
+    {
+        return $this->ruleType;
+    }
+
+    public function setRuleType(?AlertRuleType $ruleType): static
+    {
+        $this->ruleType = $ruleType;
 
         return $this;
     }

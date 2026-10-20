@@ -4,6 +4,7 @@ import type {
   OpportunitySource,
   OpportunityStatus,
   AlertPriority,
+  AlertRuleType,
   AlertStatus,
 } from "@/lib/api/types";
 
@@ -80,6 +81,22 @@ export const alertPriorityBadgeClasses: Record<AlertPriority, string> = {
   medium: "bg-blue-100 text-blue-700",
   high: "bg-amber-100 text-amber-800",
   urgent: "bg-red-100 text-red-700",
+};
+
+/** Libellés et explications des règles d'alerte configurables (Paramètres > Règles). */
+export const alertRuleTypeLabels: Record<AlertRuleType, string> = {
+  contact_follow_up_stale: "Contact sans relance récente",
+  opportunity_no_answer: "Opportunité sans réponse",
+  contact_not_presented: "Présentation non envoyée",
+};
+
+export const alertRuleTypeDescriptions: Record<AlertRuleType, string> = {
+  contact_follow_up_stale:
+    "Contact sans relance « À faire » dont la dernière relance terminée (ou, à défaut, la création) date de plus de N jours.",
+  opportunity_no_answer:
+    "Opportunité « Contactée » ou « En attente » dont le statut n'a pas changé depuis plus de N jours.",
+  contact_not_presented:
+    "Contact non coché « Présenté », créé il y a plus de N jours (0 : tous les contacts non présentés).",
 };
 
 export const interactionTypeLabels: Record<InteractionType, string> = {

@@ -44,6 +44,9 @@ services:
     App\Controller\MessageTemplateRenderController:
         public: true
 
+    App\Controller\AlertRuleEvaluationController:
+        public: true
+
     # Phase 8 — seuil de score injecté en paramètre de conteneur (voir
     # parameters: ci-dessus) plutôt que codé en dur dans la règle.
     App\Automation\Rule\CreateAlertForHighScoreOpportunityRule:

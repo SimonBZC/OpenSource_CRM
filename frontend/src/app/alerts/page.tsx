@@ -8,11 +8,13 @@ import { IconButton } from "@/components/ui/IconButton";
 import { Pagination } from "@/components/ui/Pagination";
 import { toDisplayMessage } from "@/lib/api/errors";
 import { idFromIri } from "@/lib/api/iri";
-import { contactsApi, opportunitiesApi, alertsApi } from "@/lib/api/resources";
+import { contactsApi, evaluateAlertRules, opportunitiesApi, alertsApi } from "@/lib/api/resources";
 import {
   ALERT_PRIORITIES,
+  ALERT_RULE_TYPES,
   ALERT_STATUSES,
   type Alert,
+  type AlertRuleEvaluation,
   type AlertPriority,
   type AlertStatus,
 } from "@/lib/api/types";
@@ -20,11 +22,22 @@ import { formatDateTime, isOverdue } from "@/lib/format";
 import {
   alertPriorityBadgeClasses,
   alertPriorityLabels,
+  alertRuleTypeLabels,
   alertStatusBadgeClasses,
   alertStatusLabels,
 } from "@/lib/labels";
 
 const ITEMS_PER_PAGE = 20;
+
+/** Texte du bandeau affiché après « Vérifier les règles ». */
+function evaluationMessage(result: AlertRuleEvaluation): string {
+  if (result.created === 0) return "Aucune nouvelle alerte.";
+  const details = ALERT_RULE_TYPES.filter((type) => (result.byRule[type] ?? 0) > 0)
+    .map((type) => `${alertRuleTypeLabels[type]} : ${result.byRule[type]}`)
+    .join(", ");
+  const total = result.created === 1 ? "1 alerte créée" : `${result.created} alertes créées`;
+  return details ? `${total} (${details}).` : `${total}.`;
+}
 
 export default function AlertsPage() {
   const [items, setItems] = useState<Alert[]>([]);
@@ -35,12 +48,14 @@ export default function AlertsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [evaluating, setEvaluating] = useState(false);
+  const [evaluationResult, setEvaluationResult] = useState<string | null>(null);
 
   // Résolution des libellés d'élément lié (Alert n'expose que des IRI).
   const [contactNames, setContactNames] = useState<Record<number, string>>({});
   const [opportunityTitles, setOpportunityTitles] = useState<Record<number, string>>({});
 
-  useEffect(() => {
+  function loadLinkedLabels() {
     Promise.all([
       contactsApi.list({ itemsPerPage: 100 }),
       opportunitiesApi.list({ itemsPerPage: 100 }),
@@ -56,6 +71,10 @@ export default function AlertsPage() {
       .catch(() => {
         // Non bloquant.
       });
+  }
+
+  useEffect(() => {
+    loadLinkedLabels();
   }, []);
 
   function reload() {
@@ -95,6 +114,24 @@ export default function AlertsPage() {
     }
   }
 
+  async function checkRules() {
+    if (evaluating) return;
+    setEvaluating(true);
+    setActionError(null);
+    setEvaluationResult(null);
+    try {
+      const result = await evaluateAlertRules();
+      setEvaluationResult(evaluationMessage(result));
+      // Les alertes créées peuvent viser des éléments absents des libellés chargés.
+      loadLinkedLabels();
+      reload();
+    } catch (err) {
+      setActionError(toDisplayMessage(err));
+    } finally {
+      setEvaluating(false);
+    }
+  }
+
   function linkedItem(alert: Alert): { label: string; href: string } | null {
     if (alert.opportunity) {
       const id = idFromIri(alert.opportunity);
@@ -113,12 +150,22 @@ export default function AlertsPage() {
     <div className="p-8">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight">Alertes</h1>
-        <Link
-          href="/alerts/new"
-          className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-        >
-          Nouvelle alerte
-        </Link>
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={checkRules}
+            disabled={evaluating}
+            className="rounded-md border border-black/15 bg-white px-4 py-2 text-sm font-medium hover:bg-black/[0.03] disabled:opacity-50"
+          >
+            {evaluating ? "Vérification..." : "Vérifier les règles"}
+          </button>
+          <Link
+            href="/alerts/new"
+            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+          >
+            Nouvelle alerte
+          </Link>
+        </div>
       </div>
 
       <div className="mt-4 flex gap-3">
@@ -158,6 +205,11 @@ export default function AlertsPage() {
       <div className="mt-4 space-y-3">
         <ErrorBanner message={error} />
         <ErrorBanner message={actionError} />
+        {evaluationResult && (
+          <div className="rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+            {evaluationResult}
+          </div>
+        )}
       </div>
 
       <div className="mt-4 overflow-hidden rounded-lg border border-black/10 bg-white">

@@ -148,6 +148,22 @@ export function ContactFormFields({
       )}
 
       <div className="sm:col-span-2">
+        <div className="flex items-center gap-2">
+          <input
+            id="presentationSent"
+            type="checkbox"
+            checked={values.presentationSent ?? false}
+            onChange={(e) => onChange("presentationSent", e.target.checked)}
+            className="h-4 w-4"
+          />
+          <label htmlFor="presentationSent" className="text-sm font-medium">
+            Je me suis présenté
+          </label>
+        </div>
+        <FieldError message={validationError?.messageFor("presentationSent")} />
+      </div>
+
+      <div className="sm:col-span-2">
         <label className="block text-sm font-medium">Notes</label>
         <textarea
           value={values.notes ?? ""}

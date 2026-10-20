@@ -15,6 +15,9 @@ import type {
   OpportunityWritePayload,
   RenderedMessage,
   Alert,
+  AlertRule,
+  AlertRuleEvaluation,
+  AlertRuleWritePayload,
   AlertWritePayload,
 } from "@/lib/api/types";
 
@@ -96,4 +99,21 @@ export function renderMessageTemplate(
 ): Promise<RenderedMessage> {
   const query = buildQueryString({ contact: contactId ?? undefined });
   return apiRequest<RenderedMessage>(`/api/message_templates/${id}/render${query}`);
+}
+
+// Règles d'alerte configurables (Paramètres > Règles) : lecture et
+// modification seulement, le catalogue est fixe.
+const alertRulesClient = createResourceClient<AlertRule, AlertRuleWritePayload>("/api/alert_rules");
+export const alertRulesApi = {
+  list: alertRulesClient.list,
+  get: alertRulesClient.get,
+  update: alertRulesClient.update,
+};
+
+/**
+ * Vérifie les règles d'alerte activées et crée les alertes manquantes
+ * (bouton « Vérifier les règles » de la page Alertes).
+ */
+export function evaluateAlertRules(): Promise<AlertRuleEvaluation> {
+  return apiRequest<AlertRuleEvaluation>("/api/alert_rules/evaluate", { method: "POST" });
 }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\DataFixtures;
 
 use App\Entity\Alert;
+use App\Entity\AlertRule;
 use App\Entity\Company;
 use App\Entity\Contact;
 use App\Entity\FollowUp;
@@ -12,6 +13,7 @@ use App\Entity\Interaction;
 use App\Entity\MessageTemplate;
 use App\Entity\Opportunity;
 use App\Enum\AlertPriority;
+use App\Enum\AlertRuleType;
 use App\Enum\AlertStatus;
 use App\Enum\FollowUpStatus;
 use App\Enum\InteractionType;
@@ -657,6 +659,15 @@ class AppFixtures extends Fixture
 
         foreach ($messageTemplates as $messageTemplate) {
             $manager->persist($messageTemplate);
+        }
+
+        // ------------------------------------------------------------------
+        // Règles d'alerte configurables : mêmes réglages que la migration
+        // (le chargement des fixtures vide la table alert_rule).
+        // ------------------------------------------------------------------
+
+        foreach (AlertRuleType::cases() as $ruleType) {
+            $manager->persist(new AlertRule($ruleType));
         }
 
         $manager->flush();

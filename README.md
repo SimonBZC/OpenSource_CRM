@@ -117,6 +117,8 @@ renvoie la description JSON-LD/Hydra.
   « Message » affiche le message rempli pour le contact de la relance, avec « Copier ». Aucun envoi.
 - **Relances** (`/follow-ups`) et **alertes** (`/alerts`) : filtres par statut/priorité/échéance,
   actions rapides (marquer comme faite/annulée).
+- **Case « Je me suis présenté »** sur le contact (création et modification, champ API
+  `presentationSent`, faux par défaut) : alimente la règle « Présentation non envoyée ».
 
 ### IA (optionnelle, jamais obligatoire)
 
@@ -140,6 +142,29 @@ renvoie la description JSON-LD/Hydra.
 - Règles actives : score d'opportunité ≥ 80 après analyse → création automatique d'une
   alerte de relance ; relance échue et toujours à faire → notification (stub loggé,
   canal réel à brancher plus tard sans changer l'architecture).
+- **Règles d'alerte configurables** (Paramètres > Règles, `/settings/rules`) : catalogue fixe
+  de trois règles, chacune activable, avec un délai N en jours (entier ≥ 0, 422 sinon) et la
+  priorité des alertes créées. Livrées activées, priorité moyenne :
+  - *Contact sans relance récente* (`contact_follow_up_stale`, 90 j) : contact sans relance
+    « À faire » dont la dernière relance terminée (`completedAt`), ou à défaut la création, date
+    de plus de N jours (relances annulées ignorées) ;
+  - *Opportunité sans réponse* (`opportunity_no_answer`, 15 j) : opportunité « Contactée » ou
+    « En attente » dont le dernier changement de statut (`statusChangedAt`, lecture seule, mis à
+    jour à chaque changement effectif de statut) date de plus de N jours ;
+  - *Présentation non envoyée* (`contact_not_presented`, 7 j) : contact non « Présenté » créé
+    il y a plus de N jours (N = 0 : tous les contacts non présentés).
+
+  Évaluation **uniquement** par le bouton « Vérifier les règles » de la page Alertes
+  (`POST /api/alert_rules/evaluate` → `{created, byRule}`), jamais automatiquement. Pas de
+  doublon tant qu'une alerte de la même règle est « À faire » ou « En cours » pour la même cible ;
+  une fois terminée ou annulée, une nouvelle peut naître. API des réglages : `GET` et `PATCH`
+  `/api/alert_rules` (ni création ni suppression). Code : `backend/src/Automation/Scheduled/`
+  (une classe par règle + `AlertRuleEvaluator`), distinct des règles événementielles.
+  Migration `Version20261020153000` (non destructive) : table `alert_rule` avec les trois règles
+  par défaut, `alert.rule_type`, `contact.presentation_sent` (faux pour l'existant) et
+  `opportunity.status_changed_at` (rempli avec `updated_at` pour l'existant). Tant qu'elle n'est
+  pas lancée (`docker compose exec app php bin/console doctrine:migrations:migrate`), l'API
+  réelle échoue sur les contacts, opportunités et alertes.
 - Commande `php bin/console app:automation:check-due-followups [--dry-run]` pour scanner
   les relances du jour (pas encore de scheduler/cron branché — à faire lors d'une
   itération future).

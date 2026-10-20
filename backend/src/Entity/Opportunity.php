@@ -150,6 +150,16 @@ class Opportunity
     #[ApiProperty(writable: false)]
     private \DateTimeImmutable $updatedAt;
 
+    /**
+     * Date du dernier changement effectif de statut (initialisée à la
+     * création). Une modification d'un autre champ ne la change pas.
+     * Référence de la règle d'alerte opportunity_no_answer.
+     */
+    #[ORM\Column]
+    #[Groups(['opportunity:read'])]
+    #[ApiProperty(writable: false)]
+    private \DateTimeImmutable $statusChangedAt;
+
     /** @var Collection<int, Interaction> */
     #[ORM\OneToMany(targetEntity: Interaction::class, mappedBy: 'opportunity')]
     #[Groups(['opportunity:read'])]
@@ -169,6 +179,7 @@ class Opportunity
     {
         $this->createdAt = new \DateTimeImmutable();
         $this->updatedAt = new \DateTimeImmutable();
+        $this->statusChangedAt = $this->createdAt;
         $this->interactions = new ArrayCollection();
         $this->followUps = new ArrayCollection();
         $this->alerts = new ArrayCollection();
@@ -264,6 +275,10 @@ class Opportunity
 
     public function setStatus(OpportunityStatus $status): static
     {
+        if ($status !== $this->status) {
+            $this->statusChangedAt = new \DateTimeImmutable();
+        }
+
         $this->status = $status;
 
         return $this;
@@ -403,6 +418,18 @@ class Opportunity
     public function setUpdatedAt(\DateTimeImmutable $updatedAt): static
     {
         $this->updatedAt = $updatedAt;
+
+        return $this;
+    }
+
+    public function getStatusChangedAt(): \DateTimeImmutable
+    {
+        return $this->statusChangedAt;
+    }
+
+    public function setStatusChangedAt(\DateTimeImmutable $statusChangedAt): static
+    {
+        $this->statusChangedAt = $statusChangedAt;
 
         return $this;
     }

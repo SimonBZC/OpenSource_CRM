@@ -6,6 +6,7 @@ namespace App\Tests\Entity;
 
 use App\Entity\Alert;
 use App\Enum\AlertPriority;
+use App\Enum\AlertRuleType;
 use App\Enum\AlertStatus;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -121,5 +122,13 @@ final class AlertTest extends TestCase
         $violations = self::$validator->validate($alert);
 
         self::assertCount(0, $violations);
+    }
+
+    public function testRuleTypeDefaultsToNullAndCanBeSet(): void
+    {
+        $alert = new Alert();
+
+        self::assertNull($alert->getRuleType());
+        self::assertSame(AlertRuleType::CONTACT_NOT_PRESENTED, $alert->setRuleType(AlertRuleType::CONTACT_NOT_PRESENTED)->getRuleType());
     }
 }

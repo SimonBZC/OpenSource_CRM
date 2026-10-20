@@ -82,6 +82,11 @@ class Contact
     #[Groups(['contact:read', 'contact:write'])]
     private ?string $notes = null;
 
+    /** Case « Je me suis présenté » : alimente la règle d'alerte contact_not_presented. */
+    #[ORM\Column(options: ['default' => false])]
+    #[Groups(['contact:read', 'contact:write'])]
+    private bool $presentationSent = false;
+
     #[ORM\Column]
     #[Groups(['contact:read'])]
     #[ApiProperty(writable: false)]
@@ -203,6 +208,26 @@ class Contact
         $this->notes = $notes;
 
         return $this;
+    }
+
+    public function isPresentationSent(): bool
+    {
+        return $this->presentationSent;
+    }
+
+    public function setPresentationSent(bool $presentationSent): static
+    {
+        $this->presentationSent = $presentationSent;
+
+        return $this;
+    }
+
+    /**
+     * Prénom et nom, séparés par une espace (le prénom est facultatif).
+     */
+    public function getFullName(): string
+    {
+        return trim(sprintf('%s %s', $this->firstName ?? '', $this->lastName));
     }
 
     public function getCreatedAt(): \DateTimeImmutable

@@ -285,4 +285,45 @@ final class OpportunityTest extends TestCase
 
         self::assertCount(0, $violations);
     }
+
+    public function testStatusChangedAtIsInitializedToCreationDate(): void
+    {
+        $opportunity = new Opportunity();
+
+        self::assertEquals($opportunity->getCreatedAt(), $opportunity->getStatusChangedAt());
+    }
+
+    public function testEffectiveStatusChangeUpdatesStatusChangedAt(): void
+    {
+        $old = new \DateTimeImmutable('-20 days');
+        $opportunity = (new Opportunity())->setStatusChangedAt($old);
+
+        $before = new \DateTimeImmutable();
+        $opportunity->setStatus(OpportunityStatus::CONTACTED);
+
+        self::assertGreaterThanOrEqual($before, $opportunity->getStatusChangedAt());
+    }
+
+    public function testSameStatusDoesNotUpdateStatusChangedAt(): void
+    {
+        $opportunity = (new Opportunity())->setStatus(OpportunityStatus::WAITING);
+        $old = new \DateTimeImmutable('-20 days');
+        $opportunity->setStatusChangedAt($old);
+
+        $opportunity->setStatus(OpportunityStatus::WAITING);
+
+        self::assertSame($old, $opportunity->getStatusChangedAt());
+    }
+
+    public function testOtherChangesDoNotUpdateStatusChangedAt(): void
+    {
+        $opportunity = (new Opportunity())->setTitle('Avant')->setStatus(OpportunityStatus::CONTACTED);
+        $old = new \DateTimeImmutable('-20 days');
+        $opportunity->setStatusChangedAt($old);
+
+        $opportunity->setTitle('Après')->setNotes('Note')->setDailyRate(600);
+        $opportunity->onPreUpdate();
+
+        self::assertSame($old, $opportunity->getStatusChangedAt());
+    }
 }

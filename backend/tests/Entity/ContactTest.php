@@ -184,4 +184,18 @@ final class ContactTest extends TestCase
 
         self::assertCount(0, $violations);
     }
+
+    public function testPresentationSentDefaultsToFalseAndCanBeSet(): void
+    {
+        $contact = new Contact();
+
+        self::assertFalse($contact->isPresentationSent());
+        self::assertTrue($contact->setPresentationSent(true)->isPresentationSent());
+    }
+
+    public function testFullNameJoinsFirstAndLastName(): void
+    {
+        self::assertSame('Jean Dupont', (new Contact())->setFirstName('Jean')->setLastName('Dupont')->getFullName());
+        self::assertSame('Dupont', (new Contact())->setLastName('Dupont')->getFullName());
+    }
 }

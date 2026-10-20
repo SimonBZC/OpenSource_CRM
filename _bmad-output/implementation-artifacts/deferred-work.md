@@ -34,3 +34,9 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-opportunites-tjm-unique-sans-url.md`
   summary: Vérifier l'absence de TJM négatifs dans la vraie base (non vérifié, medium si présents) ; sinon les opportunités concernées renvoient 422 à la prochaine modification.
   evidence: Les anciens champs n'avaient aucune contrainte de signe ; la migration copie les valeurs telles quelles.
+- source_spec: `_bmad-output/implementation-artifacts/spec-regles-alertes-configurables.md`
+  summary: Tester sur base les requêtes des règles d'alerte (hasOpenAlertForRule, findLastCompletedAtByContact, findContactIdsWithTodoFollowUp, findNotPresented).
+  evidence: Tous les tests simulent les dépôts ; retirer le filtre de statut de la déduplication ou compter les relances annulées laisserait la suite verte.
+- source_spec: `_bmad-output/implementation-artifacts/spec-regles-alertes-configurables.md`
+  summary: Décider avec Simon si une alerte de règle se clôt d'elle-même quand sa condition disparaît, et si les relances liées à une opportunité du contact comptent pour la règle « Contact sans relance récente ».
+  evidence: Non spécifié ; aujourd'hui l'alerte reste ouverte et seules les relances liées directement au contact comptent.

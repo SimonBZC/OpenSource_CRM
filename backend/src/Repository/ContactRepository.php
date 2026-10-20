@@ -17,4 +17,15 @@ class ContactRepository extends ServiceEntityRepository
     {
         parent::__construct($registry, Contact::class);
     }
+
+    /**
+     * Contacts dont la case « Présenté » n'est pas cochée (règle
+     * contact_not_presented).
+     *
+     * @return list<Contact>
+     */
+    public function findNotPresented(): array
+    {
+        return $this->findBy(['presentationSent' => false], ['id' => 'ASC']);
+    }
 }

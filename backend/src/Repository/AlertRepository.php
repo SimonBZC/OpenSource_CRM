@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Repository;
 
 use App\Entity\Alert;
+use App\Entity\Contact;
 use App\Entity\Opportunity;
+use App\Enum\AlertRuleType;
 use App\Enum\AlertStatus;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
@@ -42,5 +44,32 @@ class AlertRepository extends ServiceEntityRepository
             ->getSingleScalarResult();
 
         return $count > 0;
+    }
+
+    /**
+     * Déduplication des règles d'alerte configurables
+     * (App\Automation\Scheduled\AlertRuleEvaluator) : indique s'il existe
+     * une alerte de cette règle encore ouverte (« À faire » ou « En cours »)
+     * pour la cible. La cible est l'opportunité si elle est fournie, sinon le
+     * contact ; sans l'un ni l'autre, rien n'est dédupliqué.
+     */
+    public function hasOpenAlertForRule(AlertRuleType $ruleType, ?Opportunity $opportunity, ?Contact $contact): bool
+    {
+        $qb = $this->createQueryBuilder('a')
+            ->select('COUNT(a.id)')
+            ->andWhere('a.ruleType = :ruleType')
+            ->andWhere('a.status IN (:openStatuses)')
+            ->setParameter('ruleType', $ruleType)
+            ->setParameter('openStatuses', [AlertStatus::TODO, AlertStatus::IN_PROGRESS]);
+
+        if (null !== $opportunity) {
+            $qb->andWhere('a.opportunity = :opportunity')->setParameter('opportunity', $opportunity);
+        } elseif (null !== $contact) {
+            $qb->andWhere('a.contact = :contact')->setParameter('contact', $contact);
+        } else {
+            return false;
+        }
+
+        return $qb->getQuery()->getSingleScalarResult() > 0;
     }
 }

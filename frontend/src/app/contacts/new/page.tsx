@@ -12,7 +12,10 @@ import type { Company, ContactWritePayload } from "@/lib/api/types";
 export default function NewContactPage() {
   const router = useRouter();
   const [companies, setCompanies] = useState<Company[]>([]);
-  const [values, setValues] = useState<ContactWritePayload>({ lastName: "" });
+  const [values, setValues] = useState<ContactWritePayload>({
+    lastName: "",
+    presentationSent: false,
+  });
   const [validationError, setValidationError] = useState<ApiValidationError | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);

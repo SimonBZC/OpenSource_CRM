@@ -54,6 +54,7 @@ export default function ContactDetailPage({
         jobTitle: data.jobTitle,
         company: data.company,
         notes: data.notes,
+        presentationSent: data.presentationSent,
       });
       const relatedOpportunities = await Promise.all(
         data.opportunities
