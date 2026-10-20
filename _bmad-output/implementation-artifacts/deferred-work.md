@@ -43,3 +43,6 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-notifications-unifiees.md`
   summary: Décider si l'analyse IA d'une opportunité passe par les notifications (succès vert, erreurs en rouge) ou garde son bandeau.
   evidence: `app/opportunities/[id]/page.tsx` (`handleAnalyze`) écrit l'opportunité mais garde `analysisError` en bandeau et n'émet aucune notification de succès.
+- source_spec: `_bmad-output/implementation-artifacts/spec-relances-a-faire-et-message-contact.md`
+  summary: Faire ouvrir la liste des relances sur le filtre « En retard » depuis la tuile « Relances en retard » du Dashboard (paramètre d'URL).
+  evidence: La tuile pointe vers `/follow-ups`, qui affiche désormais toutes les relances « À faire », pas seulement celles en retard.

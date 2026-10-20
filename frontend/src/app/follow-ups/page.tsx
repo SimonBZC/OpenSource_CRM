@@ -34,7 +34,8 @@ export default function FollowUpsPage() {
   const [items, setItems] = useState<FollowUp[]>([]);
   const [totalItems, setTotalItems] = useState(0);
   const [page, setPage] = useState(1);
-  const [status, setStatus] = useState<FollowUpStatus | "">("");
+  // Par défaut, seules les relances à faire sont affichées.
+  const [status, setStatus] = useState<FollowUpStatus | "">("todo");
   const [quickFilter, setQuickFilter] = useState<QuickFilter>("all");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

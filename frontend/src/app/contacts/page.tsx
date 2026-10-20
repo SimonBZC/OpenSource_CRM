@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { MessageDialog } from "@/components/follow-ups/MessageDialog";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { IconButton } from "@/components/ui/IconButton";
 import { Pagination } from "@/components/ui/Pagination";
@@ -27,6 +28,8 @@ export default function ContactsPage() {
   const [items, setItems] = useState<Contact[]>([]);
   const [totalItems, setTotalItems] = useState(0);
   const [page, setPage] = useState(1);
+  // Contact dont la popup « Message » est ouverte (null = popup fermée).
+  const [messageContact, setMessageContact] = useState<Contact | null>(null);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -138,6 +141,12 @@ export default function ContactsPage() {
                       tone="blue"
                       href={`/follow-ups/new?${prefillQuery(contact)}`}
                     />
+                    <IconButton
+                      icon="message"
+                      label="Message"
+                      tone="blue"
+                      onClick={() => setMessageContact(contact)}
+                    />
                   </div>
                 </td>
               </tr>
@@ -161,6 +170,12 @@ export default function ContactsPage() {
           onPageChange={setPage}
         />
       </div>
+
+      <MessageDialog
+        open={messageContact !== null}
+        contactId={messageContact?.id ?? null}
+        onClose={() => setMessageContact(null)}
+      />
     </div>
   );
 }

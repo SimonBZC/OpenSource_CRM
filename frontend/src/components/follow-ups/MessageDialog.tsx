@@ -11,13 +11,13 @@ import { missingPlaceholderLabel } from "@/lib/messagePlaceholders";
 
 type MessageDialogProps = {
   open: boolean;
-  /** Contact enregistré de la relance (null : relance sans contact). */
+  /** Contact dont les données remplissent le message (null : relance sans contact). */
   contactId: number | null;
   onClose: () => void;
 };
 
 /**
- * Popup « Message » d'une relance : choix d'un message pré-construit par
+ * Popup « Message » (relances et contacts) : choix d'un message pré-construit par
  * titre, affichage du message rempli avec les données du contact (rendu côté
  * backend), puis copie dans le presse-papiers. Aucun envoi.
  *

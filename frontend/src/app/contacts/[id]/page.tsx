@@ -6,6 +6,7 @@ import { use, useCallback, useEffect, useState } from "react";
 import { ContactFormFields } from "@/components/contacts/ContactFormFields";
 import { useInlineCompany } from "@/components/contacts/useInlineCompany";
 import { Badge } from "@/components/ui/Badge";
+import { MessageDialog } from "@/components/follow-ups/MessageDialog";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { useNotify } from "@/components/ui/Toaster";
@@ -35,6 +36,7 @@ export default function ContactDetailPage({
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [messageOpen, setMessageOpen] = useState(false);
   const inlineCompany = useInlineCompany();
 
   const load = useCallback(async () => {
@@ -158,16 +160,24 @@ export default function ContactDetailPage({
             <p className="text-sm text-black/60">{linkedCompany.name}</p>
           )}
         </div>
-        <button
-          type="button"
-          onClick={() => setConfirmOpen(true)}
-          disabled={deleting}
-          className="rounded-md border border-red-300 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
-        >
-          {deleting ? "Suppression..." : "Supprimer"}
-        </button>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setMessageOpen(true)}
+            className="rounded-md border border-blue-300 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50"
+          >
+            Message
+          </button>
+          <button
+            type="button"
+            onClick={() => setConfirmOpen(true)}
+            disabled={deleting}
+            className="rounded-md border border-red-300 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
+          >
+            {deleting ? "Suppression..." : "Supprimer"}
+          </button>
+        </div>
       </div>
-
 
       {/* Erreur de chargement partiel (ex. opportunités liées) : reste en bandeau. */}
       <div className="mt-4">
@@ -229,6 +239,8 @@ export default function ContactDetailPage({
           </div>
         </div>
       </div>
+
+      <MessageDialog open={messageOpen} contactId={contact.id} onClose={() => setMessageOpen(false)} />
 
       <ConfirmDialog
         open={confirmOpen}
