@@ -26,6 +26,10 @@ import {
   alertStatusLabels,
 } from "@/lib/labels";
 
+/** Valeur du filtre de statut « À traiter » (à faire + en cours). */
+const OPEN_FILTER = "open";
+const OPEN_STATUSES: AlertStatus[] = ["todo", "in_progress"];
+
 const ITEMS_PER_PAGE = 20;
 
 /** Texte de la notification affichée après « Vérifier les règles ». */
@@ -38,7 +42,8 @@ export default function AlertsPage() {
   const [items, setItems] = useState<Alert[]>([]);
   const [totalItems, setTotalItems] = useState(0);
   const [page, setPage] = useState(1);
-  const [status, setStatus] = useState<AlertStatus | "">("");
+  // « open » = à traiter (à faire + en cours) : filtre par défaut.
+  const [status, setStatus] = useState<AlertStatus | "" | typeof OPEN_FILTER>(OPEN_FILTER);
   const [priority, setPriority] = useState<AlertPriority | "">("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -79,7 +84,7 @@ export default function AlertsPage() {
         page,
         itemsPerPage: ITEMS_PER_PAGE,
         "order[dueDate]": "asc",
-        "status[]": status ? [status] : undefined,
+        "status[]": status === OPEN_FILTER ? OPEN_STATUSES : status ? [status] : undefined,
         "priority[]": priority ? [priority] : undefined,
       })
       .then((res) => {
@@ -165,10 +170,11 @@ export default function AlertsPage() {
           value={status}
           onChange={(e) => {
             setPage(1);
-            setStatus(e.target.value as AlertStatus | "");
+            setStatus(e.target.value as AlertStatus | "" | typeof OPEN_FILTER);
           }}
           className="rounded-md border border-black/15 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500"
         >
+          <option value={OPEN_FILTER}>À traiter (à faire + en cours)</option>
           <option value="">Tous les statuts</option>
           {ALERT_STATUSES.map((s) => (
             <option key={s} value={s}>
@@ -271,7 +277,7 @@ export default function AlertsPage() {
             {!loading && items.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-4 py-8 text-center text-black/50">
-                  Aucune alerte trouvée.
+                  {status === OPEN_FILTER ? "Aucune alerte à traiter." : "Aucune alerte trouvée."}
                 </td>
               </tr>
             )}
