@@ -8,7 +8,12 @@ import { ApiValidationError, toDisplayMessage } from "@/lib/api/errors";
 import { companyIri, contactIri } from "@/lib/api/iri";
 import { companiesApi, contactsApi, followUpsApi, opportunitiesApi } from "@/lib/api/resources";
 import type { Company, Contact, FollowUpWritePayload, Opportunity } from "@/lib/api/types";
-import { ensureOption, readIdParam } from "@/lib/prefill";
+import {
+  DEFAULT_FOLLOW_UP_TITLE,
+  defaultFollowUpScheduledAt,
+  ensureOption,
+  readIdParam,
+} from "@/lib/prefill";
 
 /**
  * `useSearchParams` impose un Suspense boundary en App Router : la lecture du
@@ -31,12 +36,15 @@ function NewFollowUpPageContent() {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
-  const [values, setValues] = useState<FollowUpWritePayload>({
-    title: "",
+  // Arrivée depuis la colonne Actions de la liste des contacts : titre et
+  // date prévue par défaut (toujours modifiables).
+  const [values, setValues] = useState<FollowUpWritePayload>(() => ({
+    title: prefilledContactId !== null ? DEFAULT_FOLLOW_UP_TITLE : "",
     status: "todo",
+    ...(prefilledContactId !== null && { scheduledAt: defaultFollowUpScheduledAt() }),
     ...(prefilledContactId !== null && { contact: contactIri(prefilledContactId) }),
     ...(prefilledCompanyId !== null && { company: companyIri(prefilledCompanyId) }),
-  });
+  }));
   const [validationError, setValidationError] = useState<ApiValidationError | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);

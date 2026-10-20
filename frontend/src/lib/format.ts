@@ -30,19 +30,27 @@ export function toDateInputValue(iso: string | null | undefined): string {
 
 /**
  * Convertit une date ISO en valeur pour <input type="datetime-local">
- * ("YYYY-MM-DDTHH:mm"). Pas de conversion de fuseau : on prend directement
- * les composants de la chaîne ISO, cohérent avec la convention déjà utilisée
- * pour `startDate` (OpportunityFormFields) qui ignore aussi le fuseau.
+ * ("YYYY-MM-DDTHH:mm"), exprimée dans le fuseau du navigateur : l'heure
+ * affichée dans le champ est la même que dans les listes (formatDateTime).
  */
 export function toDateTimeInputValue(iso: string | null | undefined): string {
-  if (!iso || Number.isNaN(new Date(iso).getTime())) return "";
-  return iso.slice(0, 16);
+  if (!iso) return "";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
-/** Convertit une valeur <input type="datetime-local"> en ISO (UTC+00:00). */
+/**
+ * Convertit une valeur <input type="datetime-local"> (heure locale du
+ * navigateur) en ISO UTC. Toujours envoyer de l'UTC : les colonnes Doctrine
+ * sont sans fuseau et le backend relit les dates en UTC.
+ */
 export function fromDateTimeInputValue(value: string): string | null {
   if (!value) return null;
-  return `${value}:00+00:00`;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toISOString();
 }
 
 /** Formate une date ISO en indiquant si elle est passée (relance/alerte en retard). */

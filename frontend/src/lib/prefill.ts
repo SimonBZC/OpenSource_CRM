@@ -24,3 +24,18 @@ export async function ensureOption<T extends { id: number }>(
   if (id === null || items.some((item) => item.id === id)) return items;
   return [...items, await fetchOne(id)];
 }
+
+/** Titre par défaut d'une relance créée depuis la liste des contacts. */
+export const DEFAULT_FOLLOW_UP_TITLE = "Relance commercial";
+
+/**
+ * Date prévue par défaut d'une relance créée depuis la liste des contacts :
+ * aujourd'hui à 14h (heure locale), ou demain à 14h s'il est déjà 14h passées.
+ * Renvoyée en ISO UTC, comme `fromDateTimeInputValue` (lib/format.ts).
+ */
+export function defaultFollowUpScheduledAt(now: Date = new Date()): string {
+  const day = new Date(now);
+  if (now.getHours() >= 14) day.setDate(day.getDate() + 1);
+  day.setHours(14, 0, 0, 0);
+  return day.toISOString();
+}
