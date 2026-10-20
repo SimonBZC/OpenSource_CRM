@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
+import { IconButton } from "@/components/ui/IconButton";
 import { toDisplayMessage } from "@/lib/api/errors";
 import { messageTemplatesApi } from "@/lib/api/resources";
 import type { MessageTemplate } from "@/lib/api/types";
@@ -89,13 +90,14 @@ export default function MessageTemplatesPage() {
                 </td>
                 <td className="max-w-md truncate px-4 py-3 text-black/60">{template.body}</td>
                 <td className="px-4 py-3">
-                  <button
-                    type="button"
-                    onClick={() => setPendingDelete(template)}
-                    className="rounded-md border border-red-300 px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-50"
-                  >
-                    Supprimer
-                  </button>
+                  <div className="flex gap-2">
+                    <IconButton
+                      icon="trash"
+                      label="Supprimer"
+                      tone="red"
+                      onClick={() => setPendingDelete(template)}
+                    />
+                  </div>
                 </td>
               </tr>
             ))}

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
+import { IconButton } from "@/components/ui/IconButton";
 import { Pagination } from "@/components/ui/Pagination";
 import { toDisplayMessage } from "@/lib/api/errors";
 import { idFromIri } from "@/lib/api/iri";
@@ -215,15 +216,16 @@ export default function AlertsPage() {
                     )}
                   </td>
                   <td className="px-4 py-3">
-                    {(alert.status === "todo" || alert.status === "in_progress") && (
-                      <button
-                        type="button"
-                        onClick={() => markDone(alert)}
-                        className="rounded-md border border-green-300 px-2 py-1 text-xs font-medium text-green-700 hover:bg-green-50"
-                      >
-                        Marquer comme faite
-                      </button>
-                    )}
+                    <div className="flex gap-2">
+                      {(alert.status === "todo" || alert.status === "in_progress") && (
+                        <IconButton
+                          icon="check"
+                          label="Marquer comme faite"
+                          tone="green"
+                          onClick={() => markDone(alert)}
+                        />
+                      )}
+                    </div>
                   </td>
                 </tr>
               );

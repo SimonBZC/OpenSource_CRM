@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
+import { IconButton } from "@/components/ui/IconButton";
 import { Pagination } from "@/components/ui/Pagination";
 import { toDisplayMessage } from "@/lib/api/errors";
 import { idFromIri } from "@/lib/api/iri";
@@ -124,32 +125,19 @@ export default function ContactsPage() {
                 <td className="px-4 py-3 text-black/70">{contact.email ?? "—"}</td>
                 <td className="px-4 py-3 text-black/70">{contact.phone ?? "—"}</td>
                 <td className="px-4 py-3">
-                  <div className="flex gap-1">
-                    <Link
+                  <div className="flex gap-2">
+                    <IconButton
+                      icon="briefcase"
+                      label="Nouvelle opportunité"
+                      tone="blue"
                       href={`/opportunities/new?${prefillQuery(contact)}`}
-                      title="Nouvelle opportunité"
-                      aria-label="Nouvelle opportunité"
-                      className="rounded-md p-1.5 text-blue-700 hover:bg-blue-50"
-                    >
-                      {/* Mallette : opportunité */}
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5" aria-hidden="true">
-                        <rect x="3" y="7" width="18" height="13" rx="2" />
-                        <path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
-                        <path d="M3 13h18" />
-                      </svg>
-                    </Link>
-                    <Link
+                    />
+                    <IconButton
+                      icon="bell"
+                      label="Nouvelle relance"
+                      tone="blue"
                       href={`/follow-ups/new?${prefillQuery(contact)}`}
-                      title="Nouvelle relance"
-                      aria-label="Nouvelle relance"
-                      className="rounded-md p-1.5 text-blue-700 hover:bg-blue-50"
-                    >
-                      {/* Cloche : relance */}
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5" aria-hidden="true">
-                        <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
-                        <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
-                      </svg>
-                    </Link>
+                    />
                   </div>
                 </td>
               </tr>
