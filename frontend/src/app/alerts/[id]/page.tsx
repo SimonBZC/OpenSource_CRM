@@ -9,10 +9,12 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { useNotify } from "@/components/ui/Toaster";
 import { ApiValidationError, toDisplayMessage } from "@/lib/api/errors";
+import { idFromIri } from "@/lib/api/iri";
 import { contactsApi, opportunitiesApi, alertsApi } from "@/lib/api/resources";
 import type { Contact, Opportunity, Alert, AlertWritePayload } from "@/lib/api/types";
 import { formatDate } from "@/lib/format";
 import { alertStatusBadgeClasses, alertStatusLabels } from "@/lib/labels";
+import { ensureOption } from "@/lib/prefill";
 
 export default function AlertDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -36,11 +38,14 @@ export default function AlertDetailPage({ params }: { params: Promise<{ id: stri
     try {
       const [data, contactsResult, opportunitiesResult] = await Promise.all([
         alertsApi.get(id),
-        contactsApi.list({ itemsPerPage: 100, "order[lastName]": "asc" }),
+        contactsApi.list({ itemsPerPage: 100, active: true, "order[lastName]": "asc" }),
         opportunitiesApi.list({ itemsPerPage: 100, "order[createdAt]": "desc" }),
       ]);
       setAlert(data);
-      setContacts(contactsResult.items);
+      // Contacts actifs, plus le contact déjà lié s'il est inactif (ou hors des 100 premiers).
+      setContacts(
+        await ensureOption(contactsResult.items, idFromIri(data.contact), (cid) => contactsApi.get(cid)),
+      );
       setOpportunities(opportunitiesResult.items);
       setValues({
         title: data.title,

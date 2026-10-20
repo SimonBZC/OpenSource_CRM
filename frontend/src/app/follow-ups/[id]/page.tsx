@@ -21,6 +21,7 @@ import type {
 } from "@/lib/api/types";
 import { formatDate } from "@/lib/format";
 import { followUpStatusBadgeClasses, followUpStatusLabels } from "@/lib/labels";
+import { ensureOption } from "@/lib/prefill";
 
 export default function FollowUpDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -47,12 +48,15 @@ export default function FollowUpDetailPage({ params }: { params: Promise<{ id: s
       const [data, companiesResult, contactsResult, opportunitiesResult] = await Promise.all([
         followUpsApi.get(id),
         companiesApi.list({ itemsPerPage: 100, "order[name]": "asc" }),
-        contactsApi.list({ itemsPerPage: 100, "order[lastName]": "asc" }),
+        contactsApi.list({ itemsPerPage: 100, active: true, "order[lastName]": "asc" }),
         opportunitiesApi.list({ itemsPerPage: 100, "order[createdAt]": "desc" }),
       ]);
       setFollowUp(data);
       setCompanies(companiesResult.items);
-      setContacts(contactsResult.items);
+      // Contacts actifs, plus le contact déjà lié s'il est inactif (ou hors des 100 premiers).
+      setContacts(
+        await ensureOption(contactsResult.items, idFromIri(data.contact), (cid) => contactsApi.get(cid)),
+      );
       setOpportunities(opportunitiesResult.items);
       setValues({
         title: data.title,

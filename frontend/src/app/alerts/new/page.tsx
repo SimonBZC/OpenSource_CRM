@@ -24,7 +24,7 @@ export default function NewAlertPage() {
 
   useEffect(() => {
     Promise.all([
-      contactsApi.list({ itemsPerPage: 100, "order[lastName]": "asc" }),
+      contactsApi.list({ itemsPerPage: 100, active: true, "order[lastName]": "asc" }),
       opportunitiesApi.list({ itemsPerPage: 100, "order[createdAt]": "desc" }),
     ])
       .then(([contactsResult, opportunitiesResult]) => {

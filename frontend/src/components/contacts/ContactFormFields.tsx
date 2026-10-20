@@ -164,6 +164,26 @@ export function ContactFormFields({
       </div>
 
       <div className="sm:col-span-2">
+        <div className="flex items-center gap-2">
+          <input
+            id="active"
+            type="checkbox"
+            checked={values.active ?? true}
+            onChange={(e) => onChange("active", e.target.checked)}
+            className="h-4 w-4"
+          />
+          <label htmlFor="active" className="text-sm font-medium">
+            Contact actif
+          </label>
+        </div>
+        <p className="mt-1 text-xs text-black/50">
+          Un contact inactif est masqué de la liste par défaut, n&apos;est plus proposé dans les
+          listes de choix et est ignoré par les règles d&apos;alerte.
+        </p>
+        <FieldError message={validationError?.messageFor("active")} />
+      </div>
+
+      <div className="sm:col-span-2">
         <label className="block text-sm font-medium">Notes</label>
         <textarea
           value={values.notes ?? ""}

@@ -13,7 +13,8 @@ use App\Repository\OpportunityRepository;
  *
  * Opportunité au statut « Contactée » ou « En attente » dont le dernier
  * changement de statut (`statusChangedAt`) est antérieur à maintenant − N
- * jours. Cible : l'opportunité, et son contact s'il existe.
+ * jours. Cible : l'opportunité, et son contact s'il existe. Une opportunité
+ * dont le contact est inactif est ignorée ; sans contact, elle reste évaluée.
  */
 final class OpportunityNoAnswerRule implements ScheduledAlertRuleInterface
 {
@@ -36,6 +37,10 @@ final class OpportunityNoAnswerRule implements ScheduledAlertRuleInterface
 
         foreach ($this->opportunityRepository->findByStatuses(self::STATUSES) as $opportunity) {
             if (!\in_array($opportunity->getStatus(), self::STATUSES, true)) {
+                continue;
+            }
+
+            if (false === $opportunity->getContact()?->isActive()) {
                 continue;
             }
 

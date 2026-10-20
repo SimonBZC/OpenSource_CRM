@@ -93,4 +93,28 @@ final class OpportunityNoAnswerRuleTest extends TestCase
         self::assertCount(1, $candidates);
         self::assertSame('Pas de réponse : Développeur Symfony senior', $candidates[0]->title);
     }
+
+    public function testOpportunityWithInactiveContactGivesNoAlert(): void
+    {
+        $contact = (new Contact())->setFirstName('Jean')->setLastName('Dupont')->setActive(false);
+        $opportunity = $this->opportunity(OpportunityStatus::WAITING, '-20 days')->setContact($contact);
+
+        self::assertSame([], $this->rule([$opportunity])->findCandidates(15, $this->now));
+    }
+
+    public function testOpportunityWithActiveContactIsKeptAlongsideInactiveOne(): void
+    {
+        $inactive = (new Contact())->setLastName('Inactif')->setActive(false);
+        $active = (new Contact())->setLastName('Actif');
+        $withInactive = $this->opportunity(OpportunityStatus::WAITING, '-20 days')->setContact($inactive);
+        $withActive = $this->opportunity(OpportunityStatus::WAITING, '-20 days')->setContact($active);
+        $withoutContact = $this->opportunity(OpportunityStatus::WAITING, '-20 days');
+
+        $candidates = $this->rule([$withInactive, $withActive, $withoutContact])->findCandidates(15, $this->now);
+
+        self::assertCount(2, $candidates);
+        self::assertSame($withActive, $candidates[0]->opportunity);
+        self::assertSame($withoutContact, $candidates[1]->opportunity);
+        self::assertNull($candidates[1]->contact);
+    }
 }

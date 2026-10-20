@@ -59,6 +59,7 @@ export default function ContactDetailPage({
         company: data.company,
         notes: data.notes,
         presentationSent: data.presentationSent,
+        active: data.active,
       });
       const relatedOpportunities = await Promise.all(
         data.opportunities
@@ -153,9 +154,12 @@ export default function ContactDetailPage({
           <Link href="/contacts" className="text-sm text-blue-700 hover:underline">
             ← Contacts
           </Link>
-          <h1 className="mt-1 text-2xl font-bold tracking-tight">
-            {[contact.firstName, contact.lastName].filter(Boolean).join(" ")}
-          </h1>
+          <div className="mt-1 flex items-center gap-3">
+            <h1 className="text-2xl font-bold tracking-tight">
+              {[contact.firstName, contact.lastName].filter(Boolean).join(" ")}
+            </h1>
+            {!contact.active && <Badge label="Inactif" className="bg-gray-100 text-gray-600" />}
+          </div>
           {linkedCompany && (
             <p className="text-sm text-black/60">{linkedCompany.name}</p>
           )}

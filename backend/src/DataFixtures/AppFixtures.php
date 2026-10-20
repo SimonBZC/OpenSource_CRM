@@ -186,7 +186,9 @@ class AppFixtures extends Fixture
             ->setPhone('02 40 12 34 56')
             ->setLinkedin(null)
             ->setCompany($pixelSens)
-            ->setNotes('Point de contact administratif.');
+            ->setNotes('Point de contact administratif.')
+            // Contact inactif : masqué par défaut, mais encore lié à des relances et opportunités.
+            ->setActive(false);
 
         foreach ([$marie, $thomas, $camille, $julien, $sarah, $nicolas, $laure, $antoine, $elise] as $contact) {
             $manager->persist($contact);

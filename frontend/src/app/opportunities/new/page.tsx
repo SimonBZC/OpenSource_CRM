@@ -46,7 +46,7 @@ function NewOpportunityPageContent() {
   useEffect(() => {
     Promise.all([
       companiesApi.list({ itemsPerPage: 100, "order[name]": "asc" }),
-      contactsApi.list({ itemsPerPage: 100, "order[lastName]": "asc" }),
+      contactsApi.list({ itemsPerPage: 100, active: true, "order[lastName]": "asc" }),
     ])
       .then(([companiesResult, contactsResult]) =>
         Promise.all([

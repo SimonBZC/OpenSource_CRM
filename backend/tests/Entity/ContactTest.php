@@ -193,6 +193,15 @@ final class ContactTest extends TestCase
         self::assertTrue($contact->setPresentationSent(true)->isPresentationSent());
     }
 
+    public function testActiveDefaultsToTrueAndCanBeToggled(): void
+    {
+        $contact = new Contact();
+
+        self::assertTrue($contact->isActive());
+        self::assertFalse($contact->setActive(false)->isActive());
+        self::assertTrue($contact->setActive(true)->isActive());
+    }
+
     public function testFullNameJoinsFirstAndLastName(): void
     {
         self::assertSame('Jean Dupont', (new Contact())->setFirstName('Jean')->setLastName('Dupont')->getFullName());

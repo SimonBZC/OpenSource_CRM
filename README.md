@@ -119,6 +119,16 @@ renvoie la description JSON-LD/Hydra.
   actions rapides (marquer comme faite/annulée).
 - **Case « Je me suis présenté »** sur le contact (création et modification, champ API
   `presentationSent`, faux par défaut) : alimente la règle « Présentation non envoyée ».
+- **Contacts inactifs** : case « Contact actif » sur le contact (création et modification,
+  champ API `active`, vrai par défaut, filtre `GET /api/contacts?active=true|false`). La liste
+  des contacts affiche les actifs par défaut (filtre « Actifs » / « Inactifs » / « Tous », badge
+  « Inactif »). Un contact inactif n'est plus proposé dans les listes de choix (relance,
+  opportunité, alerte), sauf s'il est déjà lié à l'élément modifié (« Nom (inactif) »), et il
+  est ignoré par les trois règles d'alerte (pour *Opportunité sans réponse* : opportunité dont
+  le contact est inactif ; sans contact, elle reste évaluée). Rien d'autre ne change : fiche,
+  relances, opportunités, alertes ouvertes et messages restent accessibles ; recocher la case
+  le réactive. Migration `Version20261020170000` (non destructive, tous les contacts existants
+  actifs) à lancer : `docker compose exec app php bin/console doctrine:migrations:migrate`.
 - **Notifications** : chaque écriture (création, modification, suppression, « marquer comme
   faite », « Vérifier les règles », analyse IA, copie de message) est confirmée par une notification verte
   en bas à droite (4 s) ; une erreur d'action s'y affiche en rouge jusqu'à fermeture. Les erreurs

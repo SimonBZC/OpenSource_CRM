@@ -99,6 +99,8 @@ export interface Contact {
   notes: string | null;
   /** Case « Je me suis présenté » (règle d'alerte contact_not_presented). */
   presentationSent: boolean;
+  /** Case « Contact actif » : un inactif est masqué par défaut et ignoré par les règles d'alerte. */
+  active: boolean;
   createdAt: string;
   interactions: Iri[];
   opportunities: Iri[];
@@ -222,6 +224,7 @@ export type ContactWritePayload = Partial<
     | "company"
     | "notes"
     | "presentationSent"
+    | "active"
   >
 >;
 

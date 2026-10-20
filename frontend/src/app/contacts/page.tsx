@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { MessageDialog } from "@/components/follow-ups/MessageDialog";
+import { Badge } from "@/components/ui/Badge";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { IconButton } from "@/components/ui/IconButton";
 import { Pagination } from "@/components/ui/Pagination";
@@ -12,6 +13,15 @@ import { contactsApi } from "@/lib/api/resources";
 import type { Contact } from "@/lib/api/types";
 
 const ITEMS_PER_PAGE = 20;
+
+/** Filtre de statut des contacts : « Actifs » par défaut. */
+type ActiveFilter = "active" | "inactive" | "all";
+
+const activeFilterParam: Record<ActiveFilter, boolean | undefined> = {
+  active: true,
+  inactive: false,
+  all: undefined,
+};
 
 /**
  * Paramètres de pré-remplissage des formulaires Opportunité et Relance
@@ -31,6 +41,7 @@ export default function ContactsPage() {
   // Contact dont la popup « Message » est ouverte (null = popup fermée).
   const [messageContact, setMessageContact] = useState<Contact | null>(null);
   const [search, setSearch] = useState("");
+  const [activeFilter, setActiveFilter] = useState<ActiveFilter>("active");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -46,6 +57,7 @@ export default function ContactsPage() {
             page,
             itemsPerPage: ITEMS_PER_PAGE,
             lastName: search || undefined,
+            active: activeFilterParam[activeFilter],
             "order[lastName]": "asc",
           })
           .then((res) => {
@@ -68,7 +80,7 @@ export default function ContactsPage() {
       cancelled = true;
       clearTimeout(timeout);
     };
-  }, [page, search]);
+  }, [page, search, activeFilter]);
 
   return (
     <div className="p-8">
@@ -82,7 +94,7 @@ export default function ContactsPage() {
         </Link>
       </div>
 
-      <div className="mt-4">
+      <div className="mt-4 flex gap-3">
         <input
           type="search"
           value={search}
@@ -93,6 +105,19 @@ export default function ContactsPage() {
           placeholder="Rechercher par nom..."
           className="w-full max-w-sm rounded-md border border-black/15 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500"
         />
+        <select
+          value={activeFilter}
+          onChange={(e) => {
+            setPage(1);
+            setActiveFilter(e.target.value as ActiveFilter);
+          }}
+          aria-label="Statut des contacts"
+          className="rounded-md border border-black/15 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500"
+        >
+          <option value="active">Actifs</option>
+          <option value="inactive">Inactifs</option>
+          <option value="all">Tous</option>
+        </select>
       </div>
 
       <div className="mt-4">
@@ -123,6 +148,7 @@ export default function ContactsPage() {
                   >
                     {[contact.firstName, contact.lastName].filter(Boolean).join(" ")}
                   </Link>
+                  {!contact.active && <Badge label="Inactif" className="ml-2 bg-gray-100 text-gray-600" />}
                 </td>
                 <td className="px-4 py-3 text-black/70">{contact.jobTitle ?? "—"}</td>
                 <td className="px-4 py-3 text-black/70">{contact.email ?? "—"}</td>

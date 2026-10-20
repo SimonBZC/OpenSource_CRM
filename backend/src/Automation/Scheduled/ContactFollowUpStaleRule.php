@@ -16,6 +16,7 @@ use App\Repository\FollowUpRepository;
  * dernière relance terminée, ou sa date de création s'il n'en a aucune. Les
  * relances annulées sont ignorées, ainsi que les relances terminées sans
  * `completedAt`. Seules comptent les relances directement liées au contact.
+ * Les contacts inactifs sont ignorés.
  */
 final class ContactFollowUpStaleRule implements ScheduledAlertRuleInterface
 {
@@ -39,6 +40,10 @@ final class ContactFollowUpStaleRule implements ScheduledAlertRuleInterface
         $candidates = [];
 
         foreach ($this->contactRepository->findAll() as $contact) {
+            if (!$contact->isActive()) {
+                continue;
+            }
+
             $id = $contact->getId();
 
             if (null !== $id && isset($withTodo[$id])) {

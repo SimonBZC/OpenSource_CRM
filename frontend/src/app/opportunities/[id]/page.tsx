@@ -10,6 +10,7 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { useNotify } from "@/components/ui/Toaster";
 import { ApiError, ApiValidationError, toDisplayMessage } from "@/lib/api/errors";
+import { idFromIri } from "@/lib/api/iri";
 import { analyzeOpportunity, companiesApi, contactsApi, opportunitiesApi } from "@/lib/api/resources";
 import type {
   Company,
@@ -20,6 +21,7 @@ import type {
 } from "@/lib/api/types";
 import { formatDate } from "@/lib/format";
 import { opportunityStatusBadgeClasses, opportunityStatusLabels } from "@/lib/labels";
+import { ensureOption } from "@/lib/prefill";
 
 export default function OpportunityDetailPage({
   params,
@@ -50,11 +52,14 @@ export default function OpportunityDetailPage({
       const [data, companiesResult, contactsResult] = await Promise.all([
         opportunitiesApi.get(id),
         companiesApi.list({ itemsPerPage: 100, "order[name]": "asc" }),
-        contactsApi.list({ itemsPerPage: 100, "order[lastName]": "asc" }),
+        contactsApi.list({ itemsPerPage: 100, active: true, "order[lastName]": "asc" }),
       ]);
       setOpportunity(data);
       setCompanies(companiesResult.items);
-      setContacts(contactsResult.items);
+      // Contacts actifs, plus le contact déjà lié s'il est inactif (ou hors des 100 premiers).
+      setContacts(
+        await ensureOption(contactsResult.items, idFromIri(data.contact), (cid) => contactsApi.get(cid)),
+      );
       setValues({
         title: data.title,
         description: data.description,

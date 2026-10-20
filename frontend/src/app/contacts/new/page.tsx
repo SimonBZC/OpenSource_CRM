@@ -17,6 +17,7 @@ export default function NewContactPage() {
   const [values, setValues] = useState<ContactWritePayload>({
     lastName: "",
     presentationSent: false,
+    active: true,
   });
   const [validationError, setValidationError] = useState<ApiValidationError | null>(null);
   const [error, setError] = useState<string | null>(null);

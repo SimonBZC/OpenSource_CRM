@@ -46,3 +46,6 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-relances-a-faire-et-message-contact.md`
   summary: Faire ouvrir la liste des relances sur le filtre « En retard » depuis la tuile « Relances en retard » du Dashboard (paramètre d'URL).
   evidence: La tuile pointe vers `/follow-ups`, qui affiche désormais toutes les relances « À faire », pas seulement celles en retard.
+- source_spec: `_bmad-output/implementation-artifacts/spec-contacts-inactifs.md`
+  summary: Décider avec Simon si les règles événementielles (relance échue, opportunité à score ≥ 80) doivent aussi ignorer les contacts inactifs.
+  evidence: Seules les trois règles configurables excluent les inactifs ; `NotifyDueFollowUpRule` et `CreateAlertForHighScoreOpportunityRule` sont inchangées.

@@ -19,13 +19,13 @@ class ContactRepository extends ServiceEntityRepository
     }
 
     /**
-     * Contacts dont la case « Présenté » n'est pas cochée (règle
-     * contact_not_presented).
+     * Contacts actifs dont la case « Présenté » n'est pas cochée (règle
+     * contact_not_presented ; les contacts inactifs sont ignorés).
      *
      * @return list<Contact>
      */
     public function findNotPresented(): array
     {
-        return $this->findBy(['presentationSent' => false], ['id' => 'ASC']);
+        return $this->findBy(['presentationSent' => false, 'active' => true], ['id' => 'ASC']);
     }
 }

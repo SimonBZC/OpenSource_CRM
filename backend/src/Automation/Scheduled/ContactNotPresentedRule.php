@@ -11,7 +11,8 @@ use App\Repository\ContactRepository;
  * Règle « Présentation non envoyée » (contact_not_presented).
  *
  * Contact dont la case « Présenté » n'est pas cochée et créé avant
- * maintenant − N jours. N = 0 vise tous les contacts non présentés.
+ * maintenant − N jours. N = 0 vise tous les contacts non présentés. Les
+ * contacts inactifs sont ignorés.
  */
 final class ContactNotPresentedRule implements ScheduledAlertRuleInterface
 {
@@ -31,7 +32,7 @@ final class ContactNotPresentedRule implements ScheduledAlertRuleInterface
         $candidates = [];
 
         foreach ($this->contactRepository->findNotPresented() as $contact) {
-            if ($contact->isPresentationSent() || $contact->getCreatedAt() >= $threshold) {
+            if (!$contact->isActive() || $contact->isPresentationSent() || $contact->getCreatedAt() >= $threshold) {
                 continue;
             }
 

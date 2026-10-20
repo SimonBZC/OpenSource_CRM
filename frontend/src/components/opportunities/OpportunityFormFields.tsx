@@ -113,6 +113,7 @@ export function OpportunityFormFields({
           {contacts.map((contact) => (
             <option key={contact.id} value={contactIri(contact.id)}>
               {[contact.firstName, contact.lastName].filter(Boolean).join(" ")}
+              {!contact.active && " (inactif)"}
             </option>
           ))}
         </select>

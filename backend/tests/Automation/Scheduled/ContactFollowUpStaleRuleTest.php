@@ -114,4 +114,33 @@ final class ContactFollowUpStaleRuleTest extends TestCase
         self::assertSame($stale, $candidates[0]->contact);
         self::assertSame('Relancer Martin', $candidates[0]->title);
     }
+
+    public function testInactiveContactGivesNoAlert(): void
+    {
+        $inactive = $this->contact(1, '-200 days')->setActive(false);
+        $neverFollowedUp = $this->contact(2, '-200 days')->setActive(false);
+        // Témoin : même situation, mais actif.
+        $active = $this->contact(3, '-200 days', 'Paul', 'Martin');
+
+        $candidates = $this->rule(
+            [$inactive, $neverFollowedUp, $active],
+            [],
+            [1 => $this->now->modify('-100 days'), 3 => $this->now->modify('-100 days')],
+        )->findCandidates(90, $this->now);
+
+        self::assertCount(1, $candidates);
+        self::assertSame($active, $candidates[0]->contact);
+    }
+
+    public function testReactivatedContactIsEvaluatedAgain(): void
+    {
+        $contact = $this->contact(1, '-100 days')->setActive(false);
+        self::assertSame([], $this->rule([$contact])->findCandidates(90, $this->now));
+
+        $contact->setActive(true);
+        $candidates = $this->rule([$contact])->findCandidates(90, $this->now);
+
+        self::assertCount(1, $candidates);
+        self::assertSame($contact, $candidates[0]->contact);
+    }
 }

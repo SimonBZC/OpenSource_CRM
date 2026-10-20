@@ -73,4 +73,15 @@ final class ContactNotPresentedRuleTest extends TestCase
         self::assertCount(2, $candidates);
         self::assertStringContainsString('0 jour', $candidates[0]->description);
     }
+
+    public function testInactiveContactGivesNoAlert(): void
+    {
+        $inactive = $this->contact('-30 days')->setActive(false);
+        $active = $this->contact('-30 days');
+
+        $candidates = $this->rule([$inactive, $active])->findCandidates(0, $this->now);
+
+        self::assertCount(1, $candidates);
+        self::assertSame($active, $candidates[0]->contact);
+    }
 }
