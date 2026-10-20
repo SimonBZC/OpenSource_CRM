@@ -120,7 +120,7 @@ renvoie la description JSON-LD/Hydra.
 - **Case « Je me suis présenté »** sur le contact (création et modification, champ API
   `presentationSent`, faux par défaut) : alimente la règle « Présentation non envoyée ».
 - **Notifications** : chaque écriture (création, modification, suppression, « marquer comme
-  faite », « Vérifier les règles », copie de message) est confirmée par une notification verte
+  faite », « Vérifier les règles », analyse IA, copie de message) est confirmée par une notification verte
   en bas à droite (4 s) ; une erreur d'action s'y affiche en rouge jusqu'à fermeture. Les erreurs
   de validation restent sous les champs, les erreurs de chargement dans le bandeau de la page.
 

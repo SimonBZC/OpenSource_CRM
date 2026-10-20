@@ -42,7 +42,12 @@ export function Toaster({ children }: { children: React.ReactNode }) {
   const push = useCallback((kind: NotificationKind, message: string) => {
     const id = ++nextId.current;
     // Au plus MAX_NOTIFICATIONS à l'écran : les plus anciennes cèdent la place.
-    setNotifications((prev) => [...prev, { id, kind, message }].slice(-MAX_NOTIFICATIONS));
+    // Une notification identique déjà affichée est remplacée plutôt qu'empilée.
+    setNotifications((prev) =>
+      [...prev.filter((n) => n.kind !== kind || n.message !== message), { id, kind, message }].slice(
+        -MAX_NOTIFICATIONS,
+      ),
+    );
   }, []);
 
   const notifier = useMemo<Notifier>(

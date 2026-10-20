@@ -41,7 +41,6 @@ export default function OpportunityDetailPage({
   const [deleting, setDeleting] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
-  const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [analysisResult, setAnalysisResult] = useState<OpportunityAnalyzeResponse | null>(null);
 
   const load = useCallback(async () => {
@@ -125,7 +124,6 @@ export default function OpportunityDetailPage({
 
   async function handleAnalyze() {
     setAnalyzing(true);
-    setAnalysisError(null);
     setAnalysisResult(null);
     try {
       const result = await analyzeOpportunity(id);
@@ -146,13 +144,14 @@ export default function OpportunityDetailPage({
         notes: result.opportunity.notes,
       });
       setAnalysisResult(result);
+      notify.success("Opportunité analysée");
     } catch (err) {
       if (err instanceof ApiError && err.errorCode === "ai_not_configured") {
-        setAnalysisError(
+        notify.error(
           "L'analyse IA n'est pas configurée. Renseignez la clé OPENAI_API_KEY côté backend pour l'activer. Le CRM fonctionne normalement sans.",
         );
       } else {
-        setAnalysisError(toDisplayMessage(err));
+        notify.error(toDisplayMessage(err));
       }
     } finally {
       setAnalyzing(false);
@@ -207,10 +206,6 @@ export default function OpportunityDetailPage({
             {deleting ? "Suppression..." : "Supprimer"}
           </button>
         </div>
-      </div>
-
-      <div className="mt-4">
-        <ErrorBanner message={analysisError} />
       </div>
 
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
