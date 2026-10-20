@@ -25,7 +25,7 @@ export function Sidebar() {
   return (
     <aside className="flex w-56 shrink-0 flex-col border-r border-black/10 bg-white">
       <div className="border-b border-black/10 px-4 py-4">
-        <Link href="/opportunities" className="text-lg font-bold tracking-tight">
+        <Link href="/dashboard" className="text-lg font-bold tracking-tight">
           FreeCRM
         </Link>
       </div>
