@@ -218,4 +218,11 @@ final class CompanyTest extends TestCase
 
         self::assertCount(0, $violations);
     }
+
+    public function testSetNameTrimsLeadingAndTrailingSpaces(): void
+    {
+        $company = (new Company())->setName('  Acme  ');
+
+        self::assertSame('Acme', $company->getName());
+    }
 }

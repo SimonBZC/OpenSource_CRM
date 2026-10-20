@@ -17,6 +17,7 @@ use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
 use App\Enum\OpportunitySource;
 use App\Repository\CompanyRepository;
+use App\State\CompanyUniqueNameProcessor;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
@@ -28,7 +29,16 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ApiResource(
     shortName: 'Company',
     description: 'Entreprise prospectée ou cliente, point central du CRM local.',
-    operations: [new GetCollection(), new Get(), new Post(), new Put(), new Patch(), new Delete()],
+    operations: [
+        new GetCollection(),
+        new Get(),
+        // Refus d'un doublon de nom (casse et espaces ignorés) à la création
+        // comme à la modification : voir App\State\CompanyUniqueNameProcessor.
+        new Post(processor: CompanyUniqueNameProcessor::class),
+        new Put(processor: CompanyUniqueNameProcessor::class),
+        new Patch(processor: CompanyUniqueNameProcessor::class),
+        new Delete(),
+    ],
     normalizationContext: ['groups' => ['company:read']],
     denormalizationContext: ['groups' => ['company:write']],
 )]
@@ -120,7 +130,9 @@ class Company
 
     public function setName(string $name): static
     {
-        $this->name = $name;
+        // Les espaces en début et fin de nom ne sont jamais significatifs
+        // (règle de doublon d'entreprise, voir CompanyRepository::findOneByNameIgnoreCase()).
+        $this->name = trim($name);
 
         return $this;
     }

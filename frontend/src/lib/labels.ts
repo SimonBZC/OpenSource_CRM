@@ -3,8 +3,8 @@ import type {
   InteractionType,
   OpportunitySource,
   OpportunityStatus,
-  TaskPriority,
-  TaskStatus,
+  AlertPriority,
+  AlertStatus,
 } from "@/lib/api/types";
 
 /** Libellés FR + classes Tailwind de badge pour les statuts d'opportunité. */
@@ -57,28 +57,28 @@ export const followUpStatusBadgeClasses: Record<FollowUpStatus, string> = {
   cancelled: "bg-gray-200 text-gray-600",
 };
 
-export const taskStatusLabels: Record<TaskStatus, string> = {
+export const alertStatusLabels: Record<AlertStatus, string> = {
   todo: "À faire",
   in_progress: "En cours",
   done: "Terminée",
   cancelled: "Annulée",
 };
 
-export const taskStatusBadgeClasses: Record<TaskStatus, string> = {
+export const alertStatusBadgeClasses: Record<AlertStatus, string> = {
   todo: "bg-blue-100 text-blue-700",
   in_progress: "bg-indigo-100 text-indigo-700",
   done: "bg-green-100 text-green-700",
   cancelled: "bg-gray-200 text-gray-600",
 };
 
-export const taskPriorityLabels: Record<TaskPriority, string> = {
+export const alertPriorityLabels: Record<AlertPriority, string> = {
   low: "Basse",
   medium: "Moyenne",
   high: "Haute",
   urgent: "Urgente",
 };
 
-export const taskPriorityBadgeClasses: Record<TaskPriority, string> = {
+export const alertPriorityBadgeClasses: Record<AlertPriority, string> = {
   low: "bg-gray-100 text-gray-600",
   medium: "bg-blue-100 text-blue-700",
   high: "bg-amber-100 text-amber-800",

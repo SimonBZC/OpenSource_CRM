@@ -4,31 +4,31 @@ import { FieldError } from "@/components/ui/FieldError";
 import type { ApiValidationError } from "@/lib/api/errors";
 import { contactIri, opportunityIri } from "@/lib/api/iri";
 import {
-  TASK_PRIORITIES,
-  TASK_STATUSES,
+  ALERT_PRIORITIES,
+  ALERT_STATUSES,
   type Contact,
   type Opportunity,
-  type TaskWritePayload,
+  type AlertWritePayload,
 } from "@/lib/api/types";
 import { fromDateTimeInputValue, toDateTimeInputValue } from "@/lib/format";
-import { taskPriorityLabels, taskStatusLabels } from "@/lib/labels";
+import { alertPriorityLabels, alertStatusLabels } from "@/lib/labels";
 
-export function TaskFormFields({
+export function AlertFormFields({
   values,
   onChange,
   validationError,
   contacts,
   opportunities,
 }: {
-  values: TaskWritePayload;
-  onChange: <K extends keyof TaskWritePayload>(field: K, value: TaskWritePayload[K]) => void;
+  values: AlertWritePayload;
+  onChange: <K extends keyof AlertWritePayload>(field: K, value: AlertWritePayload[K]) => void;
   validationError: ApiValidationError | null;
   contacts: Contact[];
   opportunities: Opportunity[];
 }) {
   // Même convention que pour les relances : le backend ne renseigne pas
   // `completedAt` automatiquement, on le gère ici en fonction du statut.
-  function handleStatusChange(status: TaskWritePayload["status"]) {
+  function handleStatusChange(status: AlertWritePayload["status"]) {
     onChange("status", status);
     if (status === "done") {
       onChange("completedAt", new Date().toISOString());
@@ -65,12 +65,12 @@ export function TaskFormFields({
         <label className="block text-sm font-medium">Statut</label>
         <select
           value={values.status ?? "todo"}
-          onChange={(e) => handleStatusChange(e.target.value as TaskWritePayload["status"])}
+          onChange={(e) => handleStatusChange(e.target.value as AlertWritePayload["status"])}
           className="mt-1 w-full rounded-md border border-black/15 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500"
         >
-          {TASK_STATUSES.map((status) => (
+          {ALERT_STATUSES.map((status) => (
             <option key={status} value={status}>
-              {taskStatusLabels[status]}
+              {alertStatusLabels[status]}
             </option>
           ))}
         </select>
@@ -82,14 +82,14 @@ export function TaskFormFields({
         <select
           value={values.priority ?? ""}
           onChange={(e) =>
-            onChange("priority", (e.target.value || null) as TaskWritePayload["priority"])
+            onChange("priority", (e.target.value || null) as AlertWritePayload["priority"])
           }
           className="mt-1 w-full rounded-md border border-black/15 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500"
         >
           <option value="">—</option>
-          {TASK_PRIORITIES.map((priority) => (
+          {ALERT_PRIORITIES.map((priority) => (
             <option key={priority} value={priority}>
-              {taskPriorityLabels[priority]}
+              {alertPriorityLabels[priority]}
             </option>
           ))}
         </select>
@@ -101,7 +101,7 @@ export function TaskFormFields({
         <select
           value={values.opportunity ?? ""}
           onChange={(e) =>
-            onChange("opportunity", (e.target.value || null) as TaskWritePayload["opportunity"])
+            onChange("opportunity", (e.target.value || null) as AlertWritePayload["opportunity"])
           }
           className="mt-1 w-full rounded-md border border-black/15 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500"
         >
@@ -120,7 +120,7 @@ export function TaskFormFields({
         <select
           value={values.contact ?? ""}
           onChange={(e) =>
-            onChange("contact", (e.target.value || null) as TaskWritePayload["contact"])
+            onChange("contact", (e.target.value || null) as AlertWritePayload["contact"])
           }
           className="mt-1 w-full rounded-md border border-black/15 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500"
         >

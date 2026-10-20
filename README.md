@@ -1,7 +1,7 @@
 # FreeCRM
 
 Outil personnel de prospection freelance : centralise entreprises, contacts, opportunités,
-relances, tâches, interactions et sources.
+relances, alertes, interactions et sources.
 
 > **Application strictement locale.** Pas d'authentification, pas de comptes, pas de rôles,
 > pas de multi-utilisateur. Ce n'est pas une application destinée à être exposée sur Internet.
@@ -12,9 +12,9 @@ Les 9 phases du plan initial sont terminées :
 
 1. Socle Docker + Symfony + Next.js
 2. Modèle de données (entités, migrations, fixtures)
-3. API Platform (CRUD Company/Contact/Opportunity/FollowUp/Task/Interaction, filtres, recherche, tri, pagination)
+3. API Platform (CRUD Company/Contact/Opportunity/FollowUp/Alert/Interaction, filtres, recherche, tri, pagination)
 4. Frontend CRM (listes, fiches détaillées, formulaires)
-5. Dashboard orienté action, relances, tâches, filtres avancés sur les opportunités
+5. Dashboard orienté action, relances, alertes, filtres avancés sur les opportunités
 6. Architecture IA (`LLMProviderInterface` → `OpenAiProvider`, `OpportunityAnalyzer`)
 7. Analyse IA branchée sur un vrai flux (`POST /api/opportunities/{id}/analyze`, bouton frontend)
 8. Architecture d'automatisation événementielle (`DomainEventBus`, `AutomationRuleInterface`, 2 règles réelles)
@@ -55,7 +55,7 @@ cp .env.example .env
 
 docker compose up -d --build
 
-# Charger les fixtures de démonstration (entreprises, contacts, opportunités, relances, tâches)
+# Charger les fixtures de démonstration (entreprises, contacts, opportunités, relances, alertes)
 docker compose exec app php bin/console doctrine:fixtures:load
 ```
 
@@ -91,13 +91,21 @@ renvoie la description JSON-LD/Hydra.
 ### CRM
 
 - **Dashboard** (`/dashboard`) orienté action : opportunités à traiter, relances du jour /
-  en retard, tâches à effectuer, opportunités à fort potentiel, opportunités récentes.
+  en retard, alertes à traiter, opportunités à fort potentiel, opportunités récentes.
 - **Entreprises, contacts, opportunités** (`/companies`, `/contacts`, `/opportunities`) :
   listes filtrables/triables, fiches détaillées, création/édition.
+- **Unicité des entreprises** : deux entreprises ne peuvent pas porter le même nom (casse et
+  espaces en début/fin ignorés). L'API refuse un doublon sur POST/PUT/PATCH `/api/companies`
+  (422, violation sur `name`).
+- **Création d'entreprise depuis le formulaire contact** : si aucune entreprise n'est choisie,
+  « Ou créer une entreprise » + « Rechercher » vérifie le nom, puis l'entreprise (nom + secteur)
+  est créée avec le contact. Si l'enregistrement du contact échoue, l'entreprise est supprimée.
+- **Actions sur la liste des contacts** : « Nouvelle opportunité » et « Nouvelle relance » ouvrent
+  le formulaire pré-rempli via `?contact={id}&company={id}` (`company` omis si le contact n'en a pas).
 - **Opportunités** : statut (9 valeurs, extensible), source (7 valeurs, extensible), TJM
   min/max, remote, technologies, score, raison du score. Filtres avancés : statut, source,
   score, technologie, remote, TJM, dates, recherche textuelle.
-- **Relances** (`/follow-ups`) et **tâches** (`/tasks`) : filtres par statut/priorité/échéance,
+- **Relances** (`/follow-ups`) et **alertes** (`/alerts`) : filtres par statut/priorité/échéance,
   actions rapides (marquer comme faite/annulée).
 
 ### IA (optionnelle, jamais obligatoire)
@@ -119,7 +127,7 @@ renvoie la description JSON-LD/Hydra.
   code existant.
 - Événements émis : `OpportunityCreated`, `OpportunityAnalyzed`, `FollowUpDue`.
 - Règles actives : score d'opportunité ≥ 80 après analyse → création automatique d'une
-  tâche de relance ; relance échue et toujours à faire → notification (stub loggé,
+  alerte de relance ; relance échue et toujours à faire → notification (stub loggé,
   canal réel à brancher plus tard sans changer l'architecture).
 - Commande `php bin/console app:automation:check-due-followups [--dry-run]` pour scanner
   les relances du jour (pas encore de scheduler/cron branché — à faire lors d'une
@@ -238,7 +246,7 @@ Postgres ouvert pendant l'opération corrompt la base.
 .
 ├── backend/
 │   ├── src/
-│   │   ├── Entity/         Company, Contact, Opportunity, FollowUp, Task, Interaction
+│   │   ├── Entity/         Company, Contact, Opportunity, FollowUp, Alert, Interaction
 │   │   ├── Enum/           Statuts/sources/types extensibles (backed enums)
 │   │   ├── Filter/         Filtres API Platform personnalisés (technologie, recherche...)
 │   │   ├── Ai/             Abstraction IA : LLMProviderInterface, OpenAiProvider, OpportunityAnalyzer
@@ -248,7 +256,7 @@ Postgres ouvert pendant l'opération corrompt la base.
 │   ├── migrations/
 │   └── tests/
 ├── frontend/
-│   └── src/app/            dashboard/, companies/, contacts/, opportunities/, follow-ups/, tasks/, settings/
+│   └── src/app/            dashboard/, companies/, contacts/, opportunities/, follow-ups/, alerts/, settings/
 ├── docker-compose.yml      Les 3 services
 ├── .env.example            Variables surchargeables
 └── README.md

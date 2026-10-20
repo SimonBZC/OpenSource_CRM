@@ -1,21 +1,41 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 import { FollowUpFormFields } from "@/components/follow-ups/FollowUpFormFields";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { ApiValidationError, toDisplayMessage } from "@/lib/api/errors";
+import { companyIri, contactIri } from "@/lib/api/iri";
 import { companiesApi, contactsApi, followUpsApi, opportunitiesApi } from "@/lib/api/resources";
 import type { Company, Contact, FollowUpWritePayload, Opportunity } from "@/lib/api/types";
+import { ensureOption, readIdParam } from "@/lib/prefill";
 
+/**
+ * `useSearchParams` impose un Suspense boundary en App Router : la lecture du
+ * pré-remplissage (`?contact=…&company=…`, liens de la liste des contacts)
+ * est isolée dans un composant enfant.
+ */
 export default function NewFollowUpPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-sm text-black/50">Chargement…</div>}>
+      <NewFollowUpPageContent />
+    </Suspense>
+  );
+}
+
+function NewFollowUpPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const prefilledContactId = readIdParam(searchParams, "contact");
+  const prefilledCompanyId = readIdParam(searchParams, "company");
   const [companies, setCompanies] = useState<Company[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [values, setValues] = useState<FollowUpWritePayload>({
     title: "",
     status: "todo",
+    ...(prefilledContactId !== null && { contact: contactIri(prefilledContactId) }),
+    ...(prefilledCompanyId !== null && { company: companyIri(prefilledCompanyId) }),
   });
   const [validationError, setValidationError] = useState<ApiValidationError | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -27,13 +47,20 @@ export default function NewFollowUpPage() {
       contactsApi.list({ itemsPerPage: 100, "order[lastName]": "asc" }),
       opportunitiesApi.list({ itemsPerPage: 100, "order[createdAt]": "desc" }),
     ])
-      .then(([companiesResult, contactsResult, opportunitiesResult]) => {
-        setCompanies(companiesResult.items);
-        setContacts(contactsResult.items);
-        setOpportunities(opportunitiesResult.items);
+      .then(([companiesResult, contactsResult, opportunitiesResult]) =>
+        Promise.all([
+          ensureOption(companiesResult.items, prefilledCompanyId, (cid) => companiesApi.get(cid)),
+          ensureOption(contactsResult.items, prefilledContactId, (cid) => contactsApi.get(cid)),
+          opportunitiesResult.items,
+        ]),
+      )
+      .then(([companiesItems, contactsItems, opportunitiesItems]) => {
+        setCompanies(companiesItems);
+        setContacts(contactsItems);
+        setOpportunities(opportunitiesItems);
       })
       .catch((err) => setError(toDisplayMessage(err)));
-  }, []);
+  }, [prefilledCompanyId, prefilledContactId]);
 
   function onChange<K extends keyof FollowUpWritePayload>(
     field: K,

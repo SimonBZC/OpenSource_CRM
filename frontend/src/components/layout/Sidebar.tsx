@@ -16,7 +16,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/companies", label: "Entreprises" },
   { href: "/contacts", label: "Contacts" },
   { href: "/follow-ups", label: "Relances" },
-  { href: "/tasks", label: "Tâches" },
+  { href: "/alerts", label: "Alertes" },
   { href: "/settings", label: "Paramètres", comingSoon: true },
 ];
 

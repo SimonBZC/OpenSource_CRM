@@ -7,35 +7,35 @@ import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { Pagination } from "@/components/ui/Pagination";
 import { toDisplayMessage } from "@/lib/api/errors";
 import { idFromIri } from "@/lib/api/iri";
-import { contactsApi, opportunitiesApi, tasksApi } from "@/lib/api/resources";
+import { contactsApi, opportunitiesApi, alertsApi } from "@/lib/api/resources";
 import {
-  TASK_PRIORITIES,
-  TASK_STATUSES,
-  type Task,
-  type TaskPriority,
-  type TaskStatus,
+  ALERT_PRIORITIES,
+  ALERT_STATUSES,
+  type Alert,
+  type AlertPriority,
+  type AlertStatus,
 } from "@/lib/api/types";
 import { formatDateTime, isOverdue } from "@/lib/format";
 import {
-  taskPriorityBadgeClasses,
-  taskPriorityLabels,
-  taskStatusBadgeClasses,
-  taskStatusLabels,
+  alertPriorityBadgeClasses,
+  alertPriorityLabels,
+  alertStatusBadgeClasses,
+  alertStatusLabels,
 } from "@/lib/labels";
 
 const ITEMS_PER_PAGE = 20;
 
-export default function TasksPage() {
-  const [items, setItems] = useState<Task[]>([]);
+export default function AlertsPage() {
+  const [items, setItems] = useState<Alert[]>([]);
   const [totalItems, setTotalItems] = useState(0);
   const [page, setPage] = useState(1);
-  const [status, setStatus] = useState<TaskStatus | "">("");
-  const [priority, setPriority] = useState<TaskPriority | "">("");
+  const [status, setStatus] = useState<AlertStatus | "">("");
+  const [priority, setPriority] = useState<AlertPriority | "">("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  // Résolution des libellés d'élément lié (Task n'expose que des IRI).
+  // Résolution des libellés d'élément lié (Alert n'expose que des IRI).
   const [contactNames, setContactNames] = useState<Record<number, string>>({});
   const [opportunityTitles, setOpportunityTitles] = useState<Record<number, string>>({});
 
@@ -60,7 +60,7 @@ export default function TasksPage() {
   function reload() {
     setLoading(true);
     setError(null);
-    tasksApi
+    alertsApi
       .list({
         page,
         itemsPerPage: ITEMS_PER_PAGE,
@@ -82,26 +82,26 @@ export default function TasksPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, status, priority]);
 
-  async function markDone(task: Task) {
+  async function markDone(alert: Alert) {
     setActionError(null);
     try {
       // completedAt n'est pas rempli par le backend (même constat que pour
       // les relances, vérifié par curl) : on l'envoie nous-mêmes.
-      await tasksApi.update(task.id, { status: "done", completedAt: new Date().toISOString() });
+      await alertsApi.update(alert.id, { status: "done", completedAt: new Date().toISOString() });
       reload();
     } catch (err) {
       setActionError(toDisplayMessage(err));
     }
   }
 
-  function linkedItem(task: Task): { label: string; href: string } | null {
-    if (task.opportunity) {
-      const id = idFromIri(task.opportunity);
+  function linkedItem(alert: Alert): { label: string; href: string } | null {
+    if (alert.opportunity) {
+      const id = idFromIri(alert.opportunity);
       if (!id) return null;
       return { label: `Opportunité : ${opportunityTitles[id] ?? `#${id}`}`, href: `/opportunities/${id}` };
     }
-    if (task.contact) {
-      const id = idFromIri(task.contact);
+    if (alert.contact) {
+      const id = idFromIri(alert.contact);
       if (!id) return null;
       return { label: `Contact : ${contactNames[id] ?? `#${id}`}`, href: `/contacts/${id}` };
     }
@@ -111,12 +111,12 @@ export default function TasksPage() {
   return (
     <div className="p-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold tracking-tight">Tâches</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Alertes</h1>
         <Link
-          href="/tasks/new"
+          href="/alerts/new"
           className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
         >
-          Nouvelle tâche
+          Nouvelle alerte
         </Link>
       </div>
 
@@ -125,14 +125,14 @@ export default function TasksPage() {
           value={status}
           onChange={(e) => {
             setPage(1);
-            setStatus(e.target.value as TaskStatus | "");
+            setStatus(e.target.value as AlertStatus | "");
           }}
           className="rounded-md border border-black/15 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500"
         >
           <option value="">Tous les statuts</option>
-          {TASK_STATUSES.map((s) => (
+          {ALERT_STATUSES.map((s) => (
             <option key={s} value={s}>
-              {taskStatusLabels[s]}
+              {alertStatusLabels[s]}
             </option>
           ))}
         </select>
@@ -141,14 +141,14 @@ export default function TasksPage() {
           value={priority}
           onChange={(e) => {
             setPage(1);
-            setPriority(e.target.value as TaskPriority | "");
+            setPriority(e.target.value as AlertPriority | "");
           }}
           className="rounded-md border border-black/15 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500"
         >
           <option value="">Toutes les priorités</option>
-          {TASK_PRIORITIES.map((p) => (
+          {ALERT_PRIORITIES.map((p) => (
             <option key={p} value={p}>
-              {taskPriorityLabels[p]}
+              {alertPriorityLabels[p]}
             </option>
           ))}
         </select>
@@ -172,28 +172,28 @@ export default function TasksPage() {
             </tr>
           </thead>
           <tbody>
-            {items.map((task) => {
-              const link = linkedItem(task);
+            {items.map((alert) => {
+              const link = linkedItem(alert);
               const overdue =
-                (task.status === "todo" || task.status === "in_progress") && isOverdue(task.dueDate);
+                (alert.status === "todo" || alert.status === "in_progress") && isOverdue(alert.dueDate);
               return (
-                <tr key={task.id} className="border-t border-black/5 hover:bg-black/[0.02]">
+                <tr key={alert.id} className="border-t border-black/5 hover:bg-black/[0.02]">
                   <td className="px-4 py-3">
                     <Link
-                      href={`/tasks/${task.id}`}
+                      href={`/alerts/${alert.id}`}
                       className="font-medium text-blue-700 hover:underline"
                     >
-                      {task.title}
+                      {alert.title}
                     </Link>
                   </td>
                   <td className={`px-4 py-3 ${overdue ? "font-medium text-red-600" : "text-black/70"}`}>
-                    {formatDateTime(task.dueDate)}
+                    {formatDateTime(alert.dueDate)}
                   </td>
                   <td className="px-4 py-3">
-                    {task.priority ? (
+                    {alert.priority ? (
                       <Badge
-                        label={taskPriorityLabels[task.priority]}
-                        className={taskPriorityBadgeClasses[task.priority]}
+                        label={alertPriorityLabels[alert.priority]}
+                        className={alertPriorityBadgeClasses[alert.priority]}
                       />
                     ) : (
                       "—"
@@ -201,8 +201,8 @@ export default function TasksPage() {
                   </td>
                   <td className="px-4 py-3">
                     <Badge
-                      label={taskStatusLabels[task.status]}
-                      className={taskStatusBadgeClasses[task.status]}
+                      label={alertStatusLabels[alert.status]}
+                      className={alertStatusBadgeClasses[alert.status]}
                     />
                   </td>
                   <td className="px-4 py-3 text-black/70">
@@ -215,10 +215,10 @@ export default function TasksPage() {
                     )}
                   </td>
                   <td className="px-4 py-3">
-                    {(task.status === "todo" || task.status === "in_progress") && (
+                    {(alert.status === "todo" || alert.status === "in_progress") && (
                       <button
                         type="button"
-                        onClick={() => markDone(task)}
+                        onClick={() => markDone(alert)}
                         className="rounded-md border border-green-300 px-2 py-1 text-xs font-medium text-green-700 hover:bg-green-50"
                       >
                         Marquer comme faite
@@ -231,7 +231,7 @@ export default function TasksPage() {
             {!loading && items.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-4 py-8 text-center text-black/50">
-                  Aucune tâche trouvée.
+                  Aucune alerte trouvée.
                 </td>
               </tr>
             )}

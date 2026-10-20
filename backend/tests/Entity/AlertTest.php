@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace App\Tests\Entity;
 
-use App\Entity\Task;
-use App\Enum\TaskPriority;
-use App\Enum\TaskStatus;
+use App\Entity\Alert;
+use App\Enum\AlertPriority;
+use App\Enum\AlertStatus;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Validator\Validation;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
-final class TaskTest extends TestCase
+final class AlertTest extends TestCase
 {
     private static ValidatorInterface $validator;
 
@@ -26,27 +26,27 @@ final class TaskTest extends TestCase
     public function testConstructorInitializesCreatedAtAndDefaults(): void
     {
         $before = new \DateTimeImmutable();
-        $task = new Task();
+        $alert = new Alert();
         $after = new \DateTimeImmutable();
 
-        self::assertGreaterThanOrEqual($before, $task->getCreatedAt());
-        self::assertLessThanOrEqual($after, $task->getCreatedAt());
-        self::assertSame(TaskStatus::TODO, $task->getStatus());
-        self::assertSame(TaskPriority::MEDIUM, $task->getPriority());
+        self::assertGreaterThanOrEqual($before, $alert->getCreatedAt());
+        self::assertLessThanOrEqual($after, $alert->getCreatedAt());
+        self::assertSame(AlertStatus::TODO, $alert->getStatus());
+        self::assertSame(AlertPriority::MEDIUM, $alert->getPriority());
     }
 
     /**
-     * @return iterable<string, array{0: TaskStatus, 1: ?string, 2: bool}>
+     * @return iterable<string, array{0: AlertStatus, 1: ?string, 2: bool}>
      */
     public static function isOverdueProvider(): iterable
     {
-        foreach ([TaskStatus::TODO, TaskStatus::IN_PROGRESS] as $activeStatus) {
+        foreach ([AlertStatus::TODO, AlertStatus::IN_PROGRESS] as $activeStatus) {
             yield sprintf('%s with past due date is overdue', $activeStatus->value) => [$activeStatus, '-1 day', true];
             yield sprintf('%s with future due date is not overdue', $activeStatus->value) => [$activeStatus, '+1 day', false];
             yield sprintf('%s with no due date is not overdue', $activeStatus->value) => [$activeStatus, null, false];
         }
 
-        foreach ([TaskStatus::DONE, TaskStatus::CANCELLED] as $terminalStatus) {
+        foreach ([AlertStatus::DONE, AlertStatus::CANCELLED] as $terminalStatus) {
             yield sprintf('%s with past due date is not overdue', $terminalStatus->value) => [$terminalStatus, '-1 day', false];
             yield sprintf('%s with future due date is not overdue', $terminalStatus->value) => [$terminalStatus, '+1 day', false];
             yield sprintf('%s with no due date is not overdue', $terminalStatus->value) => [$terminalStatus, null, false];
@@ -54,71 +54,71 @@ final class TaskTest extends TestCase
     }
 
     #[DataProvider('isOverdueProvider')]
-    public function testIsOverdueWithExplicitNow(TaskStatus $status, ?string $modifier, bool $expected): void
+    public function testIsOverdueWithExplicitNow(AlertStatus $status, ?string $modifier, bool $expected): void
     {
         $reference = new \DateTimeImmutable('2026-01-15 12:00:00');
 
-        $task = (new Task())->setStatus($status);
+        $alert = (new Alert())->setStatus($status);
 
         if (null !== $modifier) {
-            $task->setDueDate($reference->modify($modifier));
+            $alert->setDueDate($reference->modify($modifier));
         }
 
-        self::assertSame($expected, $task->isOverdue($reference));
+        self::assertSame($expected, $alert->isOverdue($reference));
     }
 
     public function testIsOverdueUsesCurrentTimeWhenNowIsNull(): void
     {
-        $task = (new Task())
-            ->setStatus(TaskStatus::TODO)
+        $alert = (new Alert())
+            ->setStatus(AlertStatus::TODO)
             ->setDueDate(new \DateTimeImmutable('-1 minute'));
 
-        self::assertTrue($task->isOverdue());
+        self::assertTrue($alert->isOverdue());
     }
 
     public function testIsNotOverdueUsingCurrentTimeWhenDueDateInFuture(): void
     {
-        $task = (new Task())
-            ->setStatus(TaskStatus::TODO)
+        $alert = (new Alert())
+            ->setStatus(AlertStatus::TODO)
             ->setDueDate(new \DateTimeImmutable('+1 hour'));
 
-        self::assertFalse($task->isOverdue());
+        self::assertFalse($alert->isOverdue());
     }
 
     public function testIsOverdueIsFalseWhenDueDateExactlyAtNow(): void
     {
         $now = new \DateTimeImmutable('2026-01-15 12:00:00');
 
-        $task = (new Task())
-            ->setStatus(TaskStatus::TODO)
+        $alert = (new Alert())
+            ->setStatus(AlertStatus::TODO)
             ->setDueDate($now);
 
-        self::assertFalse($task->isOverdue($now));
+        self::assertFalse($alert->isOverdue($now));
     }
 
     public function testTitleBlankProducesViolation(): void
     {
-        $task = (new Task())->setTitle('');
+        $alert = (new Alert())->setTitle('');
 
-        $violations = self::$validator->validate($task);
+        $violations = self::$validator->validate($alert);
 
         self::assertGreaterThan(0, \count($violations));
     }
 
     public function testTitleTooLongProducesViolation(): void
     {
-        $task = (new Task())->setTitle(str_repeat('a', 256));
+        $alert = (new Alert())->setTitle(str_repeat('a', 256));
 
-        $violations = self::$validator->validate($task);
+        $violations = self::$validator->validate($alert);
 
         self::assertGreaterThan(0, \count($violations));
     }
 
-    public function testValidTaskProducesNoViolation(): void
+    public function testValidAlertProducesNoViolation(): void
     {
-        $task = (new Task())->setTitle('Relire le devis');
+        $alert = (new Alert())->setTitle('Relire le devis');
 
-        $violations = self::$validator->validate($task);
+        $violations = self::$validator->validate($alert);
 
         self::assertCount(0, $violations);
     }

@@ -4,17 +4,24 @@ import { FieldError } from "@/components/ui/FieldError";
 import type { ApiValidationError } from "@/lib/api/errors";
 import { companyIri } from "@/lib/api/iri";
 import type { Company, ContactWritePayload } from "@/lib/api/types";
+import type { InlineCompanyController } from "@/components/contacts/useInlineCompany";
 
 export function ContactFormFields({
   values,
   onChange,
   validationError,
   companies,
+  inlineCompany,
+  onError,
 }: {
   values: ContactWritePayload;
   onChange: <K extends keyof ContactWritePayload>(field: K, value: ContactWritePayload[K]) => void;
   validationError: ApiValidationError | null;
   companies: Company[];
+  /** Bloc « Ou créer une entreprise », affiché quand aucune entreprise n'est choisie. */
+  inlineCompany: InlineCompanyController;
+  /** Remonte une erreur non liée à la validation (réseau, 5xx) au bandeau de la page. */
+  onError: (error: unknown) => void;
 }) {
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -100,6 +107,45 @@ export function ContactFormFields({
         </select>
         <FieldError message={validationError?.messageFor("company")} />
       </div>
+
+      {!values.company && (
+        <div className="sm:col-span-2 rounded-md border border-dashed border-black/15 p-4">
+          <label className="block text-sm font-medium">Ou créer une entreprise</label>
+          <div className="mt-1 flex gap-2">
+            <input
+              type="text"
+              value={inlineCompany.name}
+              onChange={(e) => inlineCompany.setName(e.target.value)}
+              placeholder="Nom de l'entreprise"
+              className="w-full rounded-md border border-black/15 px-3 py-2 text-sm outline-none focus:border-blue-500"
+            />
+            <button
+              type="button"
+              onClick={() => inlineCompany.check().catch(onError)}
+              disabled={inlineCompany.name.trim() === "" || inlineCompany.status === "checking"}
+              className="rounded-md border border-black/15 px-4 py-2 text-sm font-medium hover:bg-black/[0.03] disabled:opacity-50"
+            >
+              {inlineCompany.status === "checking" ? "Recherche..." : "Rechercher"}
+            </button>
+          </div>
+          <FieldError message={inlineCompany.error ?? undefined} />
+          {inlineCompany.status === "available" && (
+            <p className="mt-1 text-xs text-green-700">Nom disponible</p>
+          )}
+
+          {inlineCompany.name.trim() !== "" && inlineCompany.status !== "duplicate" && (
+            <div className="mt-3">
+              <label className="block text-sm font-medium">Secteur d&apos;activité</label>
+              <input
+                type="text"
+                value={inlineCompany.sector}
+                onChange={(e) => inlineCompany.setSector(e.target.value)}
+                className="mt-1 w-full rounded-md border border-black/15 px-3 py-2 text-sm outline-none focus:border-blue-500"
+              />
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="sm:col-span-2">
         <label className="block text-sm font-medium">Notes</label>

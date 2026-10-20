@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Enum;
 
-enum TaskPriority: string
+enum AlertPriority: string
 {
     case LOW = 'low';
     case MEDIUM = 'medium';

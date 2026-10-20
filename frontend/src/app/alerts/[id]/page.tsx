@@ -3,23 +3,23 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { use, useCallback, useEffect, useState } from "react";
-import { TaskFormFields } from "@/components/tasks/TaskFormFields";
+import { AlertFormFields } from "@/components/alerts/AlertFormFields";
 import { Badge } from "@/components/ui/Badge";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { ApiValidationError, toDisplayMessage } from "@/lib/api/errors";
-import { contactsApi, opportunitiesApi, tasksApi } from "@/lib/api/resources";
-import type { Contact, Opportunity, Task, TaskWritePayload } from "@/lib/api/types";
+import { contactsApi, opportunitiesApi, alertsApi } from "@/lib/api/resources";
+import type { Contact, Opportunity, Alert, AlertWritePayload } from "@/lib/api/types";
 import { formatDate } from "@/lib/format";
-import { taskStatusBadgeClasses, taskStatusLabels } from "@/lib/labels";
+import { alertStatusBadgeClasses, alertStatusLabels } from "@/lib/labels";
 
-export default function TaskDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default function AlertDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
 
-  const [task, setTask] = useState<Task | null>(null);
+  const [alert, setAlert] = useState<Alert | null>(null);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
-  const [values, setValues] = useState<TaskWritePayload>({});
+  const [values, setValues] = useState<AlertWritePayload>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [validationError, setValidationError] = useState<ApiValidationError | null>(null);
@@ -31,11 +31,11 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
     setError(null);
     try {
       const [data, contactsResult, opportunitiesResult] = await Promise.all([
-        tasksApi.get(id),
+        alertsApi.get(id),
         contactsApi.list({ itemsPerPage: 100, "order[lastName]": "asc" }),
         opportunitiesApi.list({ itemsPerPage: 100, "order[createdAt]": "desc" }),
       ]);
-      setTask(data);
+      setAlert(data);
       setContacts(contactsResult.items);
       setOpportunities(opportunitiesResult.items);
       setValues({
@@ -60,7 +60,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
     return () => clearTimeout(timeout);
   }, [load]);
 
-  function onChange<K extends keyof TaskWritePayload>(field: K, value: TaskWritePayload[K]) {
+  function onChange<K extends keyof AlertWritePayload>(field: K, value: AlertWritePayload[K]) {
     setValues((prev) => ({ ...prev, [field]: value }));
   }
 
@@ -70,8 +70,8 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
     setError(null);
     setValidationError(null);
     try {
-      const updated = await tasksApi.update(id, values);
-      setTask(updated);
+      const updated = await alertsApi.update(id, values);
+      setAlert(updated);
     } catch (err) {
       if (err instanceof ApiValidationError) {
         setValidationError(err);
@@ -84,12 +84,12 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
   }
 
   async function handleDelete() {
-    if (!confirm("Supprimer définitivement cette tâche ?")) return;
+    if (!confirm("Supprimer définitivement cette alerte ?")) return;
     setDeleting(true);
     setError(null);
     try {
-      await tasksApi.remove(id);
-      router.push("/tasks");
+      await alertsApi.remove(id);
+      router.push("/alerts");
     } catch (err) {
       setError(toDisplayMessage(err));
       setDeleting(false);
@@ -100,10 +100,10 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
     return <div className="p-8 text-sm text-black/50">Chargement...</div>;
   }
 
-  if (!task) {
+  if (!alert) {
     return (
       <div className="p-8">
-        <ErrorBanner message={error ?? "Tâche introuvable."} />
+        <ErrorBanner message={error ?? "Alerte introuvable."} />
       </div>
     );
   }
@@ -112,14 +112,14 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
     <div className="p-8">
       <div className="flex items-center justify-between">
         <div>
-          <Link href="/tasks" className="text-sm text-blue-700 hover:underline">
-            ← Tâches
+          <Link href="/alerts" className="text-sm text-blue-700 hover:underline">
+            ← Alertes
           </Link>
           <div className="mt-1 flex items-center gap-3">
-            <h1 className="text-2xl font-bold tracking-tight">{task.title}</h1>
+            <h1 className="text-2xl font-bold tracking-tight">{alert.title}</h1>
             <Badge
-              label={taskStatusLabels[task.status]}
-              className={taskStatusBadgeClasses[task.status]}
+              label={alertStatusLabels[alert.status]}
+              className={alertStatusBadgeClasses[alert.status]}
             />
           </div>
         </div>
@@ -140,7 +140,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
         <form onSubmit={handleSave} className="lg:col-span-2">
           <div className="rounded-lg border border-black/10 bg-white p-6">
-            <TaskFormFields
+            <AlertFormFields
               values={values}
               onChange={onChange}
               validationError={validationError}
@@ -161,8 +161,8 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
 
         <div className="space-y-6">
           <div className="rounded-lg border border-black/10 bg-white p-4 text-xs text-black/50">
-            <p>Créée le {formatDate(task.createdAt)}</p>
-            {task.completedAt && <p>Terminée le {formatDate(task.completedAt)}</p>}
+            <p>Créée le {formatDate(alert.createdAt)}</p>
+            {alert.completedAt && <p>Terminée le {formatDate(alert.completedAt)}</p>}
           </div>
         </div>
       </div>

@@ -11,8 +11,8 @@ import type {
   Opportunity,
   OpportunityAnalyzeResponse,
   OpportunityWritePayload,
-  Task,
-  TaskWritePayload,
+  Alert,
+  AlertWritePayload,
 } from "@/lib/api/types";
 
 /**
@@ -68,11 +68,11 @@ export function analyzeOpportunity(id: number | string): Promise<OpportunityAnal
   });
 }
 
-// Clients relances/tâches (Phase 5).
+// Clients relances/alertes (Phase 5).
 export const followUpsApi = createResourceClient<FollowUp, FollowUpWritePayload>(
   "/api/follow_ups",
 );
-export const tasksApi = createResourceClient<Task, TaskWritePayload>("/api/tasks");
+export const alertsApi = createResourceClient<Alert, AlertWritePayload>("/api/alerts");
 export const interactionsApi = createResourceClient<Interaction, Partial<Interaction>>(
   "/api/interactions",
 );

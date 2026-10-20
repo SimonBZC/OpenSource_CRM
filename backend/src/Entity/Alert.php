@@ -17,75 +17,75 @@ use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
-use App\Enum\TaskPriority;
-use App\Enum\TaskStatus;
-use App\Repository\TaskRepository;
+use App\Enum\AlertPriority;
+use App\Enum\AlertStatus;
+use App\Repository\AlertRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
 
-#[ORM\Entity(repositoryClass: TaskRepository::class)]
-#[ORM\Index(columns: ['due_date'], name: 'idx_task_due_date')]
-#[ORM\Index(columns: ['status'], name: 'idx_task_status')]
+#[ORM\Entity(repositoryClass: AlertRepository::class)]
+#[ORM\Index(columns: ['due_date'], name: 'idx_alert_due_date')]
+#[ORM\Index(columns: ['status'], name: 'idx_alert_status')]
 #[ApiResource(
-    shortName: 'Task',
-    description: 'Tâche opérationnelle liée (ou non) à une opportunité et/ou un contact.',
+    shortName: 'Alert',
+    description: 'Alerte opérationnelle liée (ou non) à une opportunité et/ou un contact.',
     operations: [new GetCollection(), new Get(), new Post(), new Put(), new Patch(), new Delete()],
-    normalizationContext: ['groups' => ['task:read']],
-    denormalizationContext: ['groups' => ['task:write']],
+    normalizationContext: ['groups' => ['alert:read']],
+    denormalizationContext: ['groups' => ['alert:write']],
 )]
 #[ApiFilter(SearchFilter::class, properties: ['opportunity' => 'exact', 'contact' => 'exact'])]
 #[ApiFilter(BackedEnumFilter::class, properties: ['status', 'priority'])]
 #[ApiFilter(DateFilter::class, properties: ['dueDate'])]
 #[ApiFilter(OrderFilter::class, properties: ['dueDate', 'createdAt', 'priority'])]
-class Task
+class Alert
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['task:read'])]
+    #[Groups(['alert:read'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['task:read', 'task:write'])]
+    #[Groups(['alert:read', 'alert:write'])]
     #[Assert\NotBlank]
     #[Assert\Length(max: 255)]
     private string $title;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
-    #[Groups(['task:read', 'task:write'])]
+    #[Groups(['alert:read', 'alert:write'])]
     private ?string $description = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['task:read', 'task:write'])]
+    #[Groups(['alert:read', 'alert:write'])]
     private ?\DateTimeImmutable $dueDate = null;
 
-    #[ORM\Column(type: Types::STRING, length: 32, enumType: TaskStatus::class)]
-    #[Groups(['task:read', 'task:write'])]
-    private TaskStatus $status = TaskStatus::TODO;
+    #[ORM\Column(type: Types::STRING, length: 32, enumType: AlertStatus::class)]
+    #[Groups(['alert:read', 'alert:write'])]
+    private AlertStatus $status = AlertStatus::TODO;
 
-    #[ORM\Column(type: Types::STRING, length: 32, enumType: TaskPriority::class)]
-    #[Groups(['task:read', 'task:write'])]
-    private TaskPriority $priority = TaskPriority::MEDIUM;
+    #[ORM\Column(type: Types::STRING, length: 32, enumType: AlertPriority::class)]
+    #[Groups(['alert:read', 'alert:write'])]
+    private AlertPriority $priority = AlertPriority::MEDIUM;
 
     #[ORM\Column]
-    #[Groups(['task:read'])]
+    #[Groups(['alert:read'])]
     #[ApiProperty(writable: false)]
     private \DateTimeImmutable $createdAt;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['task:read', 'task:write'])]
+    #[Groups(['alert:read', 'alert:write'])]
     private ?\DateTimeImmutable $completedAt = null;
 
-    #[ORM\ManyToOne(targetEntity: Opportunity::class, inversedBy: 'tasks')]
+    #[ORM\ManyToOne(targetEntity: Opportunity::class, inversedBy: 'alerts')]
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
-    #[Groups(['task:read', 'task:write'])]
+    #[Groups(['alert:read', 'alert:write'])]
     private ?Opportunity $opportunity = null;
 
     #[ORM\ManyToOne(targetEntity: Contact::class)]
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
-    #[Groups(['task:read', 'task:write'])]
+    #[Groups(['alert:read', 'alert:write'])]
     private ?Contact $contact = null;
 
     public function __construct()
@@ -134,24 +134,24 @@ class Task
         return $this;
     }
 
-    public function getStatus(): TaskStatus
+    public function getStatus(): AlertStatus
     {
         return $this->status;
     }
 
-    public function setStatus(TaskStatus $status): static
+    public function setStatus(AlertStatus $status): static
     {
         $this->status = $status;
 
         return $this;
     }
 
-    public function getPriority(): TaskPriority
+    public function getPriority(): AlertPriority
     {
         return $this->priority;
     }
 
-    public function setPriority(TaskPriority $priority): static
+    public function setPriority(AlertPriority $priority): static
     {
         $this->priority = $priority;
 
@@ -211,8 +211,8 @@ class Task
         $now ??= new \DateTimeImmutable();
 
         return $this->dueDate !== null
-            && $this->status !== TaskStatus::DONE
-            && $this->status !== TaskStatus::CANCELLED
+            && $this->status !== AlertStatus::DONE
+            && $this->status !== AlertStatus::CANCELLED
             && $this->dueDate < $now;
     }
 }

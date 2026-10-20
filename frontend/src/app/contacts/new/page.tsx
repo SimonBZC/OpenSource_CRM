@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ContactFormFields } from "@/components/contacts/ContactFormFields";
+import { useInlineCompany } from "@/components/contacts/useInlineCompany";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { ApiValidationError, toDisplayMessage } from "@/lib/api/errors";
 import { companiesApi, contactsApi } from "@/lib/api/resources";
@@ -15,6 +16,7 @@ export default function NewContactPage() {
   const [validationError, setValidationError] = useState<ApiValidationError | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const inlineCompany = useInlineCompany();
 
   useEffect(() => {
     companiesApi
@@ -36,8 +38,9 @@ export default function NewContactPage() {
     setError(null);
     setValidationError(null);
     try {
-      const created = await contactsApi.create(values);
-      router.push(`/contacts/${created.id}`);
+      const result = await inlineCompany.saveContact(values, (payload) => contactsApi.create(payload));
+      if (!result) return;
+      router.push(`/contacts/${result.saved.id}`);
     } catch (err) {
       if (err instanceof ApiValidationError) {
         setValidationError(err);
@@ -61,6 +64,8 @@ export default function NewContactPage() {
             onChange={onChange}
             validationError={validationError}
             companies={companies}
+            inlineCompany={inlineCompany}
+            onError={(err) => setError(toDisplayMessage(err))}
           />
         </div>
         <div className="flex gap-3">

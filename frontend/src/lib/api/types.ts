@@ -39,11 +39,11 @@ export type CompanySource = OpportunitySource;
 export const FOLLOW_UP_STATUSES = ["todo", "done", "cancelled"] as const;
 export type FollowUpStatus = (typeof FOLLOW_UP_STATUSES)[number];
 
-export const TASK_STATUSES = ["todo", "in_progress", "done", "cancelled"] as const;
-export type TaskStatus = (typeof TASK_STATUSES)[number];
+export const ALERT_STATUSES = ["todo", "in_progress", "done", "cancelled"] as const;
+export type AlertStatus = (typeof ALERT_STATUSES)[number];
 
-export const TASK_PRIORITIES = ["low", "medium", "high", "urgent"] as const;
-export type TaskPriority = (typeof TASK_PRIORITIES)[number];
+export const ALERT_PRIORITIES = ["low", "medium", "high", "urgent"] as const;
+export type AlertPriority = (typeof ALERT_PRIORITIES)[number];
 
 export const INTERACTION_TYPES = [
   "email",
@@ -118,7 +118,7 @@ export interface Opportunity {
   updatedAt: string;
   interactions: Iri[];
   followUps: Iri[];
-  tasks: Iri[];
+  alerts: Iri[];
   companyName: string | null;
 }
 
@@ -135,13 +135,13 @@ export interface FollowUp {
   opportunity: Iri | null;
 }
 
-export interface Task {
+export interface Alert {
   id: number;
   title: string;
   description: string | null;
   dueDate: string | null;
-  status: TaskStatus;
-  priority: TaskPriority | null;
+  status: AlertStatus;
+  priority: AlertPriority | null;
   createdAt: string;
   completedAt: string | null;
   opportunity: Iri | null;
@@ -220,9 +220,9 @@ export type FollowUpWritePayload = Partial<
   >
 >;
 
-export type TaskWritePayload = Partial<
+export type AlertWritePayload = Partial<
   Pick<
-    Task,
+    Alert,
     "title" | "description" | "dueDate" | "status" | "priority" | "completedAt" | "opportunity" | "contact"
   >
 >;

@@ -45,7 +45,7 @@ export function fromDateTimeInputValue(value: string): string | null {
   return `${value}:00+00:00`;
 }
 
-/** Formate une date ISO en indiquant si elle est passée (relance/tâche en retard). */
+/** Formate une date ISO en indiquant si elle est passée (relance/alerte en retard). */
 export function isOverdue(iso: string | null | undefined): boolean {
   if (!iso) return false;
   const date = new Date(iso);

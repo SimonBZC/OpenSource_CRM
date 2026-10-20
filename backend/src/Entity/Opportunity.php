@@ -172,10 +172,10 @@ class Opportunity
     #[Groups(['opportunity:read'])]
     private Collection $followUps;
 
-    /** @var Collection<int, Task> */
-    #[ORM\OneToMany(targetEntity: Task::class, mappedBy: 'opportunity')]
+    /** @var Collection<int, Alert> */
+    #[ORM\OneToMany(targetEntity: Alert::class, mappedBy: 'opportunity')]
     #[Groups(['opportunity:read'])]
-    private Collection $tasks;
+    private Collection $alerts;
 
     public function __construct()
     {
@@ -183,7 +183,7 @@ class Opportunity
         $this->updatedAt = new \DateTimeImmutable();
         $this->interactions = new ArrayCollection();
         $this->followUps = new ArrayCollection();
-        $this->tasks = new ArrayCollection();
+        $this->alerts = new ArrayCollection();
     }
 
     #[ORM\PreUpdate]
@@ -502,28 +502,28 @@ class Opportunity
     }
 
     /**
-     * @return Collection<int, Task>
+     * @return Collection<int, Alert>
      */
-    public function getTasks(): Collection
+    public function getAlerts(): Collection
     {
-        return $this->tasks;
+        return $this->alerts;
     }
 
-    public function addTask(Task $task): static
+    public function addAlert(Alert $alert): static
     {
-        if (!$this->tasks->contains($task)) {
-            $this->tasks->add($task);
-            $task->setOpportunity($this);
+        if (!$this->alerts->contains($alert)) {
+            $this->alerts->add($alert);
+            $alert->setOpportunity($this);
         }
 
         return $this;
     }
 
-    public function removeTask(Task $task): static
+    public function removeAlert(Alert $alert): static
     {
-        if ($this->tasks->removeElement($task)) {
-            if ($task->getOpportunity() === $this) {
-                $task->setOpportunity(null);
+        if ($this->alerts->removeElement($alert)) {
+            if ($alert->getOpportunity() === $this) {
+                $alert->setOpportunity(null);
             }
         }
 

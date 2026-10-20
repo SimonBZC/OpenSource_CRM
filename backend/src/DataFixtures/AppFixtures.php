@@ -4,18 +4,18 @@ declare(strict_types=1);
 
 namespace App\DataFixtures;
 
+use App\Entity\Alert;
 use App\Entity\Company;
 use App\Entity\Contact;
 use App\Entity\FollowUp;
 use App\Entity\Interaction;
 use App\Entity\Opportunity;
-use App\Entity\Task;
+use App\Enum\AlertPriority;
+use App\Enum\AlertStatus;
 use App\Enum\FollowUpStatus;
 use App\Enum\InteractionType;
 use App\Enum\OpportunitySource;
 use App\Enum\OpportunityStatus;
-use App\Enum\TaskPriority;
-use App\Enum\TaskStatus;
 use Doctrine\Bundle\FixturesBundle\Fixture;
 use Doctrine\Persistence\ObjectManager;
 
@@ -580,87 +580,87 @@ class AppFixtures extends Fixture
         }
 
         // ------------------------------------------------------------------
-        // Tasks
+        // Alerts
         // ------------------------------------------------------------------
 
-        $tasks = [
-            (new Task())
+        $alerts = [
+            (new Alert())
                 ->setTitle('Préparer les slides de présentation technique')
                 ->setDescription("Préparer un support pour l'entretien technique Lumo Énergie.")
                 ->setDueDate($now->modify('+2 days'))
-                ->setStatus(TaskStatus::IN_PROGRESS)
-                ->setPriority(TaskPriority::HIGH)
+                ->setStatus(AlertStatus::IN_PROGRESS)
+                ->setPriority(AlertPriority::HIGH)
                 ->setOpportunity($oppLumoBackend)->setContact($marie),
-            (new Task())
+            (new Alert())
                 ->setTitle('Mettre à jour le CV avec les dernières missions')
                 ->setDescription(null)
                 ->setDueDate($now->modify('-3 days'))
-                ->setStatus(TaskStatus::TODO)
-                ->setPriority(TaskPriority::MEDIUM)
+                ->setStatus(AlertStatus::TODO)
+                ->setPriority(AlertPriority::MEDIUM)
                 ->setOpportunity(null)->setContact(null),
-            (new Task())
+            (new Alert())
                 ->setTitle('Envoyer le devis pour la mission BanquePlus')
                 ->setDescription('Chiffrer et envoyer le devis détaillé pour la mission d\'architecture.')
                 ->setDueDate($now->modify('-1 day'))
-                ->setStatus(TaskStatus::TODO)
-                ->setPriority(TaskPriority::URGENT)
+                ->setStatus(AlertStatus::TODO)
+                ->setPriority(AlertPriority::URGENT)
                 ->setOpportunity($oppBanqueDirect)->setContact($julien),
-            (new Task())
+            (new Alert())
                 ->setTitle('Préparer les questions de cadrage NeoHealth')
                 ->setDescription(null)
                 ->setDueDate($now->modify('+1 day'))
-                ->setStatus(TaskStatus::TODO)
-                ->setPriority(TaskPriority::MEDIUM)
+                ->setStatus(AlertStatus::TODO)
+                ->setPriority(AlertPriority::MEDIUM)
                 ->setOpportunity($oppNeoHealthFullstack)->setContact($sarah),
-            (new Task())
+            (new Alert())
                 ->setTitle('Signer le contrat de mission data Lumo')
                 ->setDescription('Relire et signer le contrat-cadre avant démarrage.')
                 ->setDueDate($now->modify('-32 days'))
-                ->setStatus(TaskStatus::DONE)
-                ->setPriority(TaskPriority::HIGH)
+                ->setStatus(AlertStatus::DONE)
+                ->setPriority(AlertPriority::HIGH)
                 ->setCompletedAt($now->modify('-31 days'))
                 ->setOpportunity($oppLumoData)->setContact($marie),
-            (new Task())
+            (new Alert())
                 ->setTitle("Répondre à l'email de refus Pixel & Sens")
                 ->setDescription('Accuser réception poliment et rester en contact pour de futures opportunités.')
                 ->setDueDate($now->modify('-44 days'))
-                ->setStatus(TaskStatus::DONE)
-                ->setPriority(TaskPriority::LOW)
+                ->setStatus(AlertStatus::DONE)
+                ->setPriority(AlertPriority::LOW)
                 ->setCompletedAt($now->modify('-43 days'))
                 ->setOpportunity($oppPixelRefonte)->setContact($elise),
-            (new Task())
+            (new Alert())
                 ->setTitle('Relire les conditions générales TechTalent Partners')
                 ->setDescription(null)
                 ->setDueDate($now->modify('+4 days'))
-                ->setStatus(TaskStatus::TODO)
-                ->setPriority(TaskPriority::LOW)
+                ->setStatus(AlertStatus::TODO)
+                ->setPriority(AlertPriority::LOW)
                 ->setOpportunity($oppTechTalentApi)->setContact($nicolas),
-            (new Task())
+            (new Alert())
                 ->setTitle('Faire le point sur les missions en attente')
                 ->setDescription('Revue hebdomadaire du pipeline commercial.')
                 ->setDueDate($now->modify('-6 days'))
-                ->setStatus(TaskStatus::CANCELLED)
-                ->setPriority(TaskPriority::MEDIUM)
+                ->setStatus(AlertStatus::CANCELLED)
+                ->setPriority(AlertPriority::MEDIUM)
                 ->setOpportunity(null)->setContact(null),
-            (new Task())
+            (new Alert())
                 ->setTitle('Préparer proposition DevOps pour client e-santé')
                 ->setDescription("Rédiger une proposition technique pour la mission d'infrastructure.")
                 ->setDueDate($now->modify('+6 days'))
-                ->setStatus(TaskStatus::IN_PROGRESS)
-                ->setPriority(TaskPriority::HIGH)
+                ->setStatus(AlertStatus::IN_PROGRESS)
+                ->setPriority(AlertPriority::HIGH)
                 ->setOpportunity($oppTechTalentDevops)->setContact($nicolas),
-            (new Task())
+            (new Alert())
                 ->setTitle('Archiver les documents de la mission Synapse legacy')
                 ->setDescription(null)
                 ->setDueDate($now->modify('-80 days'))
-                ->setStatus(TaskStatus::DONE)
-                ->setPriority(TaskPriority::LOW)
+                ->setStatus(AlertStatus::DONE)
+                ->setPriority(AlertPriority::LOW)
                 ->setCompletedAt($now->modify('-79 days'))
                 ->setOpportunity($oppSynapseLegacy)->setContact($laure),
         ];
 
-        foreach ($tasks as $task) {
-            $manager->persist($task);
+        foreach ($alerts as $alert) {
+            $manager->persist($alert);
         }
 
         $manager->flush();

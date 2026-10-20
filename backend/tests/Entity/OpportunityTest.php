@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Tests\Entity;
 
+use App\Entity\Alert;
 use App\Entity\Company;
 use App\Entity\FollowUp;
 use App\Entity\Interaction;
 use App\Entity\Opportunity;
-use App\Entity\Task;
 use App\Enum\InteractionType;
 use App\Enum\OpportunitySource;
 use App\Enum\OpportunityStatus;
@@ -51,7 +51,7 @@ final class OpportunityTest extends TestCase
 
         self::assertCount(0, $opportunity->getInteractions());
         self::assertCount(0, $opportunity->getFollowUps());
-        self::assertCount(0, $opportunity->getTasks());
+        self::assertCount(0, $opportunity->getAlerts());
     }
 
     public function testOnPreUpdateRefreshesUpdatedAt(): void
@@ -139,38 +139,38 @@ final class OpportunityTest extends TestCase
         self::assertNull($followUp->getOpportunity());
     }
 
-    public function testAddTaskSynchronizesOwningSide(): void
+    public function testAddAlertSynchronizesOwningSide(): void
     {
         $opportunity = new Opportunity();
-        $task = new Task();
+        $alert = new Alert();
 
-        $opportunity->addTask($task);
+        $opportunity->addAlert($alert);
 
-        self::assertTrue($opportunity->getTasks()->contains($task));
-        self::assertSame($opportunity, $task->getOpportunity());
+        self::assertTrue($opportunity->getAlerts()->contains($alert));
+        self::assertSame($opportunity, $alert->getOpportunity());
     }
 
-    public function testAddTaskTwiceDoesNotDuplicate(): void
+    public function testAddAlertTwiceDoesNotDuplicate(): void
     {
         $opportunity = new Opportunity();
-        $task = new Task();
+        $alert = new Alert();
 
-        $opportunity->addTask($task);
-        $opportunity->addTask($task);
+        $opportunity->addAlert($alert);
+        $opportunity->addAlert($alert);
 
-        self::assertCount(1, $opportunity->getTasks());
+        self::assertCount(1, $opportunity->getAlerts());
     }
 
-    public function testRemoveTaskClearsOwningSide(): void
+    public function testRemoveAlertClearsOwningSide(): void
     {
         $opportunity = new Opportunity();
-        $task = new Task();
+        $alert = new Alert();
 
-        $opportunity->addTask($task);
-        $opportunity->removeTask($task);
+        $opportunity->addAlert($alert);
+        $opportunity->removeAlert($alert);
 
-        self::assertFalse($opportunity->getTasks()->contains($task));
-        self::assertNull($task->getOpportunity());
+        self::assertFalse($opportunity->getAlerts()->contains($alert));
+        self::assertNull($alert->getOpportunity());
     }
 
     public function testDailyRateMinGreaterThanMaxProducesOneViolation(): void

@@ -4,68 +4,68 @@ declare(strict_types=1);
 
 namespace App\Tests\Enum;
 
-use App\Enum\TaskStatus;
+use App\Enum\AlertPriority;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
-final class TaskStatusTest extends TestCase
+final class AlertPriorityTest extends TestCase
 {
     /**
      * @return iterable<string, array{0: string}>
      */
     public static function backingValuesProvider(): iterable
     {
-        yield 'todo' => ['todo'];
-        yield 'in_progress' => ['in_progress'];
-        yield 'done' => ['done'];
-        yield 'cancelled' => ['cancelled'];
+        yield 'low' => ['low'];
+        yield 'medium' => ['medium'];
+        yield 'high' => ['high'];
+        yield 'urgent' => ['urgent'];
     }
 
     #[DataProvider('backingValuesProvider')]
     public function testFromResolvesEachBackingValue(string $value): void
     {
-        self::assertSame($value, TaskStatus::from($value)->value);
+        self::assertSame($value, AlertPriority::from($value)->value);
     }
 
     #[DataProvider('backingValuesProvider')]
     public function testTryFromResolvesEachBackingValue(string $value): void
     {
-        self::assertSame($value, TaskStatus::tryFrom($value)?->value);
+        self::assertSame($value, AlertPriority::tryFrom($value)?->value);
     }
 
     public function testTryFromReturnsNullForUnknownValue(): void
     {
-        self::assertNull(TaskStatus::tryFrom('does_not_exist'));
+        self::assertNull(AlertPriority::tryFrom('does_not_exist'));
     }
 
     /**
-     * @return iterable<string, array{0: TaskStatus}>
+     * @return iterable<string, array{0: AlertPriority}>
      */
     public static function casesProvider(): iterable
     {
-        foreach (TaskStatus::cases() as $case) {
+        foreach (AlertPriority::cases() as $case) {
             yield $case->name => [$case];
         }
     }
 
     #[DataProvider('casesProvider')]
-    public function testLabelIsNotEmpty(TaskStatus $status): void
+    public function testLabelIsNotEmpty(AlertPriority $priority): void
     {
-        self::assertNotSame('', $status->label());
+        self::assertNotSame('', $priority->label());
     }
 
     public function testValuesReturnsExactlyAllBackingValues(): void
     {
         self::assertSame(
-            array_map(static fn (TaskStatus $case): string => $case->value, TaskStatus::cases()),
-            TaskStatus::values(),
+            array_map(static fn (AlertPriority $case): string => $case->value, AlertPriority::cases()),
+            AlertPriority::values(),
         );
     }
 
     public function testExpectedCasesAreLocked(): void
     {
-        $names = array_map(static fn (TaskStatus $case): string => $case->name, TaskStatus::cases());
+        $names = array_map(static fn (AlertPriority $case): string => $case->name, AlertPriority::cases());
 
-        self::assertSame(['TODO', 'IN_PROGRESS', 'DONE', 'CANCELLED'], $names);
+        self::assertSame(['LOW', 'MEDIUM', 'HIGH', 'URGENT'], $names);
     }
 }

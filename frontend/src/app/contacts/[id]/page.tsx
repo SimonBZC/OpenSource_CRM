@@ -4,10 +4,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { use, useCallback, useEffect, useState } from "react";
 import { ContactFormFields } from "@/components/contacts/ContactFormFields";
+import { useInlineCompany } from "@/components/contacts/useInlineCompany";
 import { Badge } from "@/components/ui/Badge";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { ApiValidationError, toDisplayMessage } from "@/lib/api/errors";
-import { idFromIri } from "@/lib/api/iri";
+import { companyIri, idFromIri } from "@/lib/api/iri";
 import { companiesApi, contactsApi, opportunitiesApi } from "@/lib/api/resources";
 import type { Company, Contact, ContactWritePayload, Opportunity } from "@/lib/api/types";
 import { formatDate } from "@/lib/format";
@@ -30,6 +31,7 @@ export default function ContactDetailPage({
   const [validationError, setValidationError] = useState<ApiValidationError | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const inlineCompany = useInlineCompany();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -83,8 +85,19 @@ export default function ContactDetailPage({
     setError(null);
     setValidationError(null);
     try {
-      const updated = await contactsApi.update(id, values);
-      setContact(updated);
+      const result = await inlineCompany.saveContact(values, (payload) =>
+        contactsApi.update(id, payload),
+      );
+      if (!result) return;
+      setContact(result.saved);
+      const createdCompany = result.createdCompany;
+      if (createdCompany) {
+        setCompanies((prev) =>
+          [...prev, createdCompany].sort((a, b) => a.name.localeCompare(b.name)),
+        );
+        setValues((prev) => ({ ...prev, company: companyIri(createdCompany.id) }));
+        inlineCompany.reset();
+      }
     } catch (err) {
       if (err instanceof ApiValidationError) {
         setValidationError(err);
@@ -166,6 +179,8 @@ export default function ContactDetailPage({
               onChange={onChange}
               validationError={validationError}
               companies={companies}
+              inlineCompany={inlineCompany}
+              onError={(err) => setError(toDisplayMessage(err))}
             />
           </div>
           <div className="mt-4">

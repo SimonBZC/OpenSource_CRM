@@ -2,17 +2,17 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { TaskFormFields } from "@/components/tasks/TaskFormFields";
+import { AlertFormFields } from "@/components/alerts/AlertFormFields";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { ApiValidationError, toDisplayMessage } from "@/lib/api/errors";
-import { contactsApi, opportunitiesApi, tasksApi } from "@/lib/api/resources";
-import type { Contact, Opportunity, TaskWritePayload } from "@/lib/api/types";
+import { contactsApi, opportunitiesApi, alertsApi } from "@/lib/api/resources";
+import type { Contact, Opportunity, AlertWritePayload } from "@/lib/api/types";
 
-export default function NewTaskPage() {
+export default function NewAlertPage() {
   const router = useRouter();
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
-  const [values, setValues] = useState<TaskWritePayload>({
+  const [values, setValues] = useState<AlertWritePayload>({
     title: "",
     status: "todo",
   });
@@ -32,7 +32,7 @@ export default function NewTaskPage() {
       .catch((err) => setError(toDisplayMessage(err)));
   }, []);
 
-  function onChange<K extends keyof TaskWritePayload>(field: K, value: TaskWritePayload[K]) {
+  function onChange<K extends keyof AlertWritePayload>(field: K, value: AlertWritePayload[K]) {
     setValues((prev) => ({ ...prev, [field]: value }));
   }
 
@@ -42,8 +42,8 @@ export default function NewTaskPage() {
     setError(null);
     setValidationError(null);
     try {
-      const created = await tasksApi.create(values);
-      router.push(`/tasks/${created.id}`);
+      const created = await alertsApi.create(values);
+      router.push(`/alerts/${created.id}`);
     } catch (err) {
       if (err instanceof ApiValidationError) {
         setValidationError(err);
@@ -57,12 +57,12 @@ export default function NewTaskPage() {
 
   return (
     <div className="p-8">
-      <h1 className="text-2xl font-bold tracking-tight">Nouvelle tâche</h1>
+      <h1 className="text-2xl font-bold tracking-tight">Nouvelle alerte</h1>
 
       <form onSubmit={handleSubmit} className="mt-6 max-w-3xl space-y-4">
         <ErrorBanner message={error} />
         <div className="rounded-lg border border-black/10 bg-white p-6">
-          <TaskFormFields
+          <AlertFormFields
             values={values}
             onChange={onChange}
             validationError={validationError}
@@ -76,7 +76,7 @@ export default function NewTaskPage() {
             disabled={submitting}
             className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
           >
-            {submitting ? "Création..." : "Créer la tâche"}
+            {submitting ? "Création..." : "Créer l'alerte"}
           </button>
         </div>
       </form>

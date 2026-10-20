@@ -1,21 +1,41 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 import { OpportunityFormFields } from "@/components/opportunities/OpportunityFormFields";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { ApiValidationError, toDisplayMessage } from "@/lib/api/errors";
+import { companyIri, contactIri } from "@/lib/api/iri";
 import { companiesApi, contactsApi, opportunitiesApi } from "@/lib/api/resources";
 import type { Company, Contact, OpportunityWritePayload } from "@/lib/api/types";
+import { ensureOption, readIdParam } from "@/lib/prefill";
 
+/**
+ * `useSearchParams` impose un Suspense boundary en App Router : la lecture du
+ * pré-remplissage (`?contact=…&company=…`, liens de la liste des contacts)
+ * est isolée dans un composant enfant.
+ */
 export default function NewOpportunityPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-sm text-black/50">Chargement…</div>}>
+      <NewOpportunityPageContent />
+    </Suspense>
+  );
+}
+
+function NewOpportunityPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const prefilledContactId = readIdParam(searchParams, "contact");
+  const prefilledCompanyId = readIdParam(searchParams, "company");
   const [companies, setCompanies] = useState<Company[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [values, setValues] = useState<OpportunityWritePayload>({
     title: "",
     status: "new",
     technologies: [],
+    ...(prefilledContactId !== null && { contact: contactIri(prefilledContactId) }),
+    ...(prefilledCompanyId !== null && { company: companyIri(prefilledCompanyId) }),
   });
   const [validationError, setValidationError] = useState<ApiValidationError | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -26,12 +46,18 @@ export default function NewOpportunityPage() {
       companiesApi.list({ itemsPerPage: 100, "order[name]": "asc" }),
       contactsApi.list({ itemsPerPage: 100, "order[lastName]": "asc" }),
     ])
-      .then(([companiesResult, contactsResult]) => {
-        setCompanies(companiesResult.items);
-        setContacts(contactsResult.items);
+      .then(([companiesResult, contactsResult]) =>
+        Promise.all([
+          ensureOption(companiesResult.items, prefilledCompanyId, (cid) => companiesApi.get(cid)),
+          ensureOption(contactsResult.items, prefilledContactId, (cid) => contactsApi.get(cid)),
+        ]),
+      )
+      .then(([companiesItems, contactsItems]) => {
+        setCompanies(companiesItems);
+        setContacts(contactsItems);
       })
       .catch((err) => setError(toDisplayMessage(err)));
-  }, []);
+  }, [prefilledCompanyId, prefilledContactId]);
 
   function onChange<K extends keyof OpportunityWritePayload>(
     field: K,

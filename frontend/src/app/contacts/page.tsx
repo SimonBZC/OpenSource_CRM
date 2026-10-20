@@ -5,10 +5,22 @@ import { useEffect, useState } from "react";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { Pagination } from "@/components/ui/Pagination";
 import { toDisplayMessage } from "@/lib/api/errors";
+import { idFromIri } from "@/lib/api/iri";
 import { contactsApi } from "@/lib/api/resources";
 import type { Contact } from "@/lib/api/types";
 
 const ITEMS_PER_PAGE = 20;
+
+/**
+ * Paramètres de pré-remplissage des formulaires Opportunité et Relance
+ * (FR-4, FR-5) : le contact, et son entreprise s'il en a une.
+ */
+function prefillQuery(contact: Contact): string {
+  const params = new URLSearchParams({ contact: String(contact.id) });
+  const companyId = idFromIri(contact.company);
+  if (companyId !== null) params.set("company", String(companyId));
+  return params.toString();
+}
 
 export default function ContactsPage() {
   const [items, setItems] = useState<Contact[]>([]);
@@ -91,6 +103,7 @@ export default function ContactsPage() {
               <th className="px-4 py-3 font-medium">Poste</th>
               <th className="px-4 py-3 font-medium">Email</th>
               <th className="px-4 py-3 font-medium">Téléphone</th>
+              <th className="px-4 py-3 font-medium">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -110,11 +123,27 @@ export default function ContactsPage() {
                 <td className="px-4 py-3 text-black/70">{contact.jobTitle ?? "—"}</td>
                 <td className="px-4 py-3 text-black/70">{contact.email ?? "—"}</td>
                 <td className="px-4 py-3 text-black/70">{contact.phone ?? "—"}</td>
+                <td className="px-4 py-3">
+                  <div className="flex flex-wrap gap-x-3 gap-y-1">
+                    <Link
+                      href={`/opportunities/new?${prefillQuery(contact)}`}
+                      className="whitespace-nowrap text-blue-700 hover:underline"
+                    >
+                      Nouvelle opportunité
+                    </Link>
+                    <Link
+                      href={`/follow-ups/new?${prefillQuery(contact)}`}
+                      className="whitespace-nowrap text-blue-700 hover:underline"
+                    >
+                      Nouvelle relance
+                    </Link>
+                  </div>
+                </td>
               </tr>
             ))}
             {!loading && items.length === 0 && (
               <tr>
-                <td colSpan={4} className="px-4 py-8 text-center text-black/50">
+                <td colSpan={5} className="px-4 py-8 text-center text-black/50">
                   Aucun contact trouvé.
                 </td>
               </tr>

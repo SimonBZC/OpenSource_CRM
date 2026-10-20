@@ -28,7 +28,7 @@ use Symfony\Component\EventDispatcher\EventDispatcherInterface;
  * Robustesse : une règle qui lève une exception est capturée et journalisée
  * en `error`, puis l'exécution continue avec les règles suivantes. Le choix
  * assumé est qu'un défaut d'automatisation (ex. échec de création d'une
- * tâche auto-générée) ne doit JAMAIS faire échouer la requête HTTP qui a
+ * alerte auto-générée) ne doit JAMAIS faire échouer la requête HTTP qui a
  * déclenché l'événement (ex. POST /api/opportunities/{id}/analyze doit
  * continuer à répondre 200 même si une règle plante).
  */
