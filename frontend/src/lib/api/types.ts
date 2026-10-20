@@ -159,6 +159,15 @@ export interface Interaction {
   createdAt: string;
 }
 
+/** Modèle de message pré-construit (Paramètres > Messages). */
+export interface MessageTemplate {
+  id: number;
+  title: string;
+  /** Corps pouvant contenir les indicateurs {%prenom%}, {%nom%}, {%entreprise%}. */
+  body: string;
+  createdAt: string;
+}
+
 // ---------------------------------------------------------------------------
 // Payloads d'écriture : on exclut les champs en lecture seule
 // (id, createdAt, updatedAt, companyName, collections inverses).
@@ -226,6 +235,21 @@ export type AlertWritePayload = Partial<
     "title" | "description" | "dueDate" | "status" | "priority" | "completedAt" | "opportunity" | "contact"
   >
 >;
+
+export type MessageTemplateWritePayload = Partial<Pick<MessageTemplate, "title" | "body">>;
+
+// ---------------------------------------------------------------------------
+// Rendu d'un modèle de message pour un contact
+// GET /api/message_templates/{id}/render?contact={id}
+// ---------------------------------------------------------------------------
+
+export interface RenderedMessage {
+  title: string;
+  /** Corps rendu : les indicateurs sans donnée y restent tels quels. */
+  body: string;
+  /** Clés des indicateurs présents dans le corps mais sans donnée (ex. "prenom"). */
+  missing: string[];
+}
 
 // ---------------------------------------------------------------------------
 // Analyse IA d'une opportunité (Phase 7)

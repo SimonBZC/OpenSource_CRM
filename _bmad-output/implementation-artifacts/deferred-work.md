@@ -13,3 +13,9 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-recalage-dates-faux-utc.md`
   summary: Couvrir la migration de recalage Version20261020095221 par un test BDD (été et hiver, date limite, alerte auto, due_date NULL, aller-retour up/down).
   evidence: Aucun harnais BDD. Inverser :from et :to, passer < en <= ou retirer le filtre sur le titre ne ferait échouer aucun test. Vérifié à la main sur db-test uniquement.
+- source_spec: `_bmad-output/implementation-artifacts/spec-messages-predefinis.md`
+  summary: Aligner automatiquement la liste des indicateurs du frontend (lib/messagePlaceholders.ts) sur MessageTemplateRenderer::PLACEHOLDERS (endpoint d'exposition ou test croisé).
+  evidence: Les deux listes sont maintenues à la main ; un indicateur ajouté côté backend n'apparaîtrait pas dans l'éditeur, sans qu'aucun test échoue.
+- source_spec: `_bmad-output/implementation-artifacts/spec-messages-predefinis.md`
+  summary: Couvrir MessageTemplateRepository::findOneByTitleIgnoreCase et la route GET /api/message_templates/{id}/render par des tests sur base/HTTP.
+  evidence: Le processor est testé avec un repository simulé et le contrôleur est appelé directement ; retirer LOWER/TRIM, inverser excludeId ou casser la route laisserait la suite verte.

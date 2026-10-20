@@ -4,10 +4,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { use, useCallback, useEffect, useState } from "react";
 import { FollowUpFormFields } from "@/components/follow-ups/FollowUpFormFields";
+import { MessageDialog } from "@/components/follow-ups/MessageDialog";
 import { Badge } from "@/components/ui/Badge";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { ApiValidationError, toDisplayMessage } from "@/lib/api/errors";
+import { idFromIri } from "@/lib/api/iri";
 import { companiesApi, contactsApi, followUpsApi, opportunitiesApi } from "@/lib/api/resources";
 import type {
   Company,
@@ -34,6 +36,7 @@ export default function FollowUpDetailPage({ params }: { params: Promise<{ id: s
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [messageOpen, setMessageOpen] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -138,14 +141,23 @@ export default function FollowUpDetailPage({ params }: { params: Promise<{ id: s
             />
           </div>
         </div>
-        <button
-          type="button"
-          onClick={() => setConfirmOpen(true)}
-          disabled={deleting}
-          className="rounded-md border border-red-300 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
-        >
-          {deleting ? "Suppression..." : "Supprimer"}
-        </button>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setMessageOpen(true)}
+            className="rounded-md border border-blue-300 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50"
+          >
+            Message
+          </button>
+          <button
+            type="button"
+            onClick={() => setConfirmOpen(true)}
+            disabled={deleting}
+            className="rounded-md border border-red-300 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
+          >
+            {deleting ? "Suppression..." : "Supprimer"}
+          </button>
+        </div>
       </div>
 
       <div className="mt-4">
@@ -190,6 +202,13 @@ export default function FollowUpDetailPage({ params }: { params: Promise<{ id: s
         busy={deleting}
         onConfirm={handleDelete}
         onCancel={() => setConfirmOpen(false)}
+      />
+
+      {/* Contact enregistré de la relance, pas une modification non sauvegardée du formulaire. */}
+      <MessageDialog
+        open={messageOpen}
+        contactId={idFromIri(followUp.contact)}
+        onClose={() => setMessageOpen(false)}
       />
     </div>
   );

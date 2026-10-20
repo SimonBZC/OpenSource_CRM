@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { MessageDialog } from "@/components/follow-ups/MessageDialog";
 import { Badge } from "@/components/ui/Badge";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
@@ -39,6 +40,8 @@ export default function FollowUpsPage() {
   // Relance visée par la popup de suppression (null = popup fermée).
   const [pendingDelete, setPendingDelete] = useState<FollowUp | null>(null);
   const [deleting, setDeleting] = useState(false);
+  // Relance dont la popup « Message » est ouverte (null = popup fermée).
+  const [messageFollowUp, setMessageFollowUp] = useState<FollowUp | null>(null);
 
   // Listes de résolution pour la colonne "Élément lié" (pas de dénormalisation
   // côté API pour FollowUp, contrairement à Opportunity.companyName).
@@ -273,6 +276,13 @@ export default function FollowUpsPage() {
                       )}
                       <button
                         type="button"
+                        onClick={() => setMessageFollowUp(followUp)}
+                        className="rounded-md border border-blue-300 px-2 py-1 text-xs font-medium text-blue-700 hover:bg-blue-50"
+                      >
+                        Message
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => setPendingDelete(followUp)}
                         className="rounded-md border border-red-300 px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-50"
                       >
@@ -305,6 +315,12 @@ export default function FollowUpsPage() {
         busy={deleting}
         onConfirm={deleteFollowUp}
         onCancel={() => setPendingDelete(null)}
+      />
+
+      <MessageDialog
+        open={messageFollowUp !== null}
+        contactId={idFromIri(messageFollowUp?.contact)}
+        onClose={() => setMessageFollowUp(null)}
       />
     </div>
   );

@@ -9,6 +9,7 @@ use App\Entity\Company;
 use App\Entity\Contact;
 use App\Entity\FollowUp;
 use App\Entity\Interaction;
+use App\Entity\MessageTemplate;
 use App\Entity\Opportunity;
 use App\Enum\AlertPriority;
 use App\Enum\AlertStatus;
@@ -661,6 +662,23 @@ class AppFixtures extends Fixture
 
         foreach ($alerts as $alert) {
             $manager->persist($alert);
+        }
+
+        // ------------------------------------------------------------------
+        // Messages pré-construits
+        // ------------------------------------------------------------------
+
+        $messageTemplates = [
+            (new MessageTemplate())
+                ->setTitle('Relance après candidature')
+                ->setBody("Bonjour {%prenom%},\n\nJe me permets de revenir vers vous au sujet de ma candidature chez {%entreprise%}. Avez-vous pu avancer sur le sujet ?\n\nBien cordialement,\nSimon"),
+            (new MessageTemplate())
+                ->setTitle('Remerciement après entretien')
+                ->setBody("Bonjour {%prenom%} {%nom%},\n\nMerci pour notre échange. Je reste à votre disposition pour toute question.\n\nBien cordialement,\nSimon"),
+        ];
+
+        foreach ($messageTemplates as $messageTemplate) {
+            $manager->persist($messageTemplate);
         }
 
         $manager->flush();

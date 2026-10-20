@@ -107,6 +107,12 @@ renvoie la description JSON-LD/Hydra.
 - **Opportunités** : statut (9 valeurs, extensible), source (7 valeurs, extensible), TJM
   min/max, remote, technologies, score, raison du score. Filtres avancés : statut, source,
   score, technologie, remote, TJM, dates, recherche textuelle.
+- **Messages pré-construits** (Paramètres > Messages, `/settings/messages`) : titre (unique, casse
+  et espaces en début/fin ignorés, 422 sur `title`) et corps avec indicateurs `{%prenom%}`, `{%nom%}`,
+  `{%entreprise%}` (entreprise du contact). API : CRUD `/api/message_templates` et
+  `GET /api/message_templates/{id}/render?contact={id}` → `{title, body, missing}` (lecture seule ;
+  donnée manquante = indicateur laissé tel quel et listé dans `missing`). Sur les relances, le bouton
+  « Message » affiche le message rempli pour le contact de la relance, avec « Copier ». Aucun envoi.
 - **Relances** (`/follow-ups`) et **alertes** (`/alerts`) : filtres par statut/priorité/échéance,
   actions rapides (marquer comme faite/annulée).
 
