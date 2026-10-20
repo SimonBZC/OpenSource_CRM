@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/Badge";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { Pagination } from "@/components/ui/Pagination";
 import { toDisplayMessage } from "@/lib/api/errors";
@@ -35,6 +36,9 @@ export default function FollowUpsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  // Relance visée par la popup de suppression (null = popup fermée).
+  const [pendingDelete, setPendingDelete] = useState<FollowUp | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   // Listes de résolution pour la colonne "Élément lié" (pas de dénormalisation
   // côté API pour FollowUp, contrairement à Opportunity.companyName).
@@ -122,24 +126,18 @@ export default function FollowUpsPage() {
     }
   }
 
-  async function cancelFollowUp(followUp: FollowUp) {
+  async function deleteFollowUp() {
+    if (!pendingDelete || deleting) return;
+    setDeleting(true);
     setActionError(null);
     try {
-      await followUpsApi.update(followUp.id, { status: "cancelled" });
+      await followUpsApi.remove(pendingDelete.id);
       reload();
     } catch (err) {
       setActionError(toDisplayMessage(err));
-    }
-  }
-
-  async function deleteFollowUp(followUp: FollowUp) {
-    if (!confirm(`Supprimer définitivement la relance « ${followUp.title} » ?`)) return;
-    setActionError(null);
-    try {
-      await followUpsApi.remove(followUp.id);
-      reload();
-    } catch (err) {
-      setActionError(toDisplayMessage(err));
+    } finally {
+      setDeleting(false);
+      setPendingDelete(null);
     }
   }
 
@@ -265,7 +263,6 @@ export default function FollowUpsPage() {
                   <td className="px-4 py-3">
                     <div className="flex gap-2">
                       {followUp.status === "todo" && (
-                        <>
                         <button
                           type="button"
                           onClick={() => markDone(followUp)}
@@ -273,18 +270,10 @@ export default function FollowUpsPage() {
                         >
                           Marquer comme faite
                         </button>
-                        <button
-                          type="button"
-                          onClick={() => cancelFollowUp(followUp)}
-                          className="rounded-md border border-black/15 px-2 py-1 text-xs font-medium text-black/60 hover:bg-black/5"
-                        >
-                          Annuler
-                        </button>
-                        </>
                       )}
                       <button
                         type="button"
-                        onClick={() => deleteFollowUp(followUp)}
+                        onClick={() => setPendingDelete(followUp)}
                         className="rounded-md border border-red-300 px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-50"
                       >
                         Supprimer
@@ -308,6 +297,15 @@ export default function FollowUpsPage() {
       <div className="mt-4">
         <Pagination page={page} itemsPerPage={ITEMS_PER_PAGE} totalItems={totalItems} onPageChange={setPage} />
       </div>
+
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        title="Supprimer cette relance ?"
+        message={`La relance « ${pendingDelete?.title ?? ""} » sera supprimée définitivement.`}
+        busy={deleting}
+        onConfirm={deleteFollowUp}
+        onCancel={() => setPendingDelete(null)}
+      />
     </div>
   );
 }

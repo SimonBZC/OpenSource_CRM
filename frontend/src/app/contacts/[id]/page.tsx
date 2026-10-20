@@ -6,6 +6,7 @@ import { use, useCallback, useEffect, useState } from "react";
 import { ContactFormFields } from "@/components/contacts/ContactFormFields";
 import { useInlineCompany } from "@/components/contacts/useInlineCompany";
 import { Badge } from "@/components/ui/Badge";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { ApiValidationError, toDisplayMessage } from "@/lib/api/errors";
 import { companyIri, idFromIri } from "@/lib/api/iri";
@@ -31,6 +32,7 @@ export default function ContactDetailPage({
   const [validationError, setValidationError] = useState<ApiValidationError | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const inlineCompany = useInlineCompany();
 
   const load = useCallback(async () => {
@@ -110,7 +112,7 @@ export default function ContactDetailPage({
   }
 
   async function handleDelete() {
-    if (!confirm("Supprimer définitivement ce contact ?")) return;
+    if (deleting) return;
     setDeleting(true);
     setError(null);
     try {
@@ -119,6 +121,7 @@ export default function ContactDetailPage({
     } catch (err) {
       setError(toDisplayMessage(err));
       setDeleting(false);
+      setConfirmOpen(false);
     }
   }
 
@@ -154,7 +157,7 @@ export default function ContactDetailPage({
         </div>
         <button
           type="button"
-          onClick={handleDelete}
+          onClick={() => setConfirmOpen(true)}
           disabled={deleting}
           className="rounded-md border border-red-300 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
         >
@@ -222,6 +225,15 @@ export default function ContactDetailPage({
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Supprimer ce contact ?"
+        message={`Le contact « ${[contact.firstName, contact.lastName].filter(Boolean).join(" ")} » sera supprimé définitivement.`}
+        busy={deleting}
+        onConfirm={handleDelete}
+        onCancel={() => setConfirmOpen(false)}
+      />
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { use, useCallback, useEffect, useState } from "react";
 import { FollowUpFormFields } from "@/components/follow-ups/FollowUpFormFields";
 import { Badge } from "@/components/ui/Badge";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { ApiValidationError, toDisplayMessage } from "@/lib/api/errors";
 import { companiesApi, contactsApi, followUpsApi, opportunitiesApi } from "@/lib/api/resources";
@@ -32,6 +33,7 @@ export default function FollowUpDetailPage({ params }: { params: Promise<{ id: s
   const [validationError, setValidationError] = useState<ApiValidationError | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -96,7 +98,7 @@ export default function FollowUpDetailPage({ params }: { params: Promise<{ id: s
   }
 
   async function handleDelete() {
-    if (!confirm("Supprimer définitivement cette relance ?")) return;
+    if (deleting) return;
     setDeleting(true);
     setError(null);
     try {
@@ -105,6 +107,7 @@ export default function FollowUpDetailPage({ params }: { params: Promise<{ id: s
     } catch (err) {
       setError(toDisplayMessage(err));
       setDeleting(false);
+      setConfirmOpen(false);
     }
   }
 
@@ -137,7 +140,7 @@ export default function FollowUpDetailPage({ params }: { params: Promise<{ id: s
         </div>
         <button
           type="button"
-          onClick={handleDelete}
+          onClick={() => setConfirmOpen(true)}
           disabled={deleting}
           className="rounded-md border border-red-300 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
         >
@@ -179,6 +182,15 @@ export default function FollowUpDetailPage({ params }: { params: Promise<{ id: s
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Supprimer cette relance ?"
+        message={`La relance « ${followUp.title} » sera supprimée définitivement.`}
+        busy={deleting}
+        onConfirm={handleDelete}
+        onCancel={() => setConfirmOpen(false)}
+      />
     </div>
   );
 }

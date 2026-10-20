@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { use, useCallback, useEffect, useState } from "react";
 import { AlertFormFields } from "@/components/alerts/AlertFormFields";
 import { Badge } from "@/components/ui/Badge";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { ApiValidationError, toDisplayMessage } from "@/lib/api/errors";
 import { contactsApi, opportunitiesApi, alertsApi } from "@/lib/api/resources";
@@ -25,6 +26,7 @@ export default function AlertDetailPage({ params }: { params: Promise<{ id: stri
   const [validationError, setValidationError] = useState<ApiValidationError | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -84,7 +86,7 @@ export default function AlertDetailPage({ params }: { params: Promise<{ id: stri
   }
 
   async function handleDelete() {
-    if (!confirm("Supprimer définitivement cette alerte ?")) return;
+    if (deleting) return;
     setDeleting(true);
     setError(null);
     try {
@@ -93,6 +95,7 @@ export default function AlertDetailPage({ params }: { params: Promise<{ id: stri
     } catch (err) {
       setError(toDisplayMessage(err));
       setDeleting(false);
+      setConfirmOpen(false);
     }
   }
 
@@ -125,7 +128,7 @@ export default function AlertDetailPage({ params }: { params: Promise<{ id: stri
         </div>
         <button
           type="button"
-          onClick={handleDelete}
+          onClick={() => setConfirmOpen(true)}
           disabled={deleting}
           className="rounded-md border border-red-300 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
         >
@@ -166,6 +169,15 @@ export default function AlertDetailPage({ params }: { params: Promise<{ id: stri
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Supprimer cette alerte ?"
+        message={`L'alerte « ${alert.title} » sera supprimée définitivement.`}
+        busy={deleting}
+        onConfirm={handleDelete}
+        onCancel={() => setConfirmOpen(false)}
+      />
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { use, useCallback, useEffect, useState } from "react";
 import { OpportunityAnalysisPanel } from "@/components/opportunities/OpportunityAnalysisPanel";
 import { OpportunityFormFields } from "@/components/opportunities/OpportunityFormFields";
 import { Badge } from "@/components/ui/Badge";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { ApiError, ApiValidationError, toDisplayMessage } from "@/lib/api/errors";
 import { analyzeOpportunity, companiesApi, contactsApi, opportunitiesApi } from "@/lib/api/resources";
@@ -36,6 +37,7 @@ export default function OpportunityDetailPage({
   const [validationError, setValidationError] = useState<ApiValidationError | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [analysisResult, setAnalysisResult] = useState<OpportunityAnalyzeResponse | null>(null);
@@ -108,7 +110,7 @@ export default function OpportunityDetailPage({
   }
 
   async function handleDelete() {
-    if (!confirm("Supprimer définitivement cette opportunité ?")) return;
+    if (deleting) return;
     setDeleting(true);
     setError(null);
     try {
@@ -117,6 +119,7 @@ export default function OpportunityDetailPage({
     } catch (err) {
       setError(toDisplayMessage(err));
       setDeleting(false);
+      setConfirmOpen(false);
     }
   }
 
@@ -199,7 +202,7 @@ export default function OpportunityDetailPage({
           </button>
           <button
             type="button"
-            onClick={handleDelete}
+            onClick={() => setConfirmOpen(true)}
             disabled={deleting}
             className="rounded-md border border-red-300 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
           >
@@ -256,6 +259,15 @@ export default function OpportunityDetailPage({
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Supprimer cette opportunité ?"
+        message={`L'opportunité « ${opportunity.title} » sera supprimée définitivement.`}
+        busy={deleting}
+        onConfirm={handleDelete}
+        onCancel={() => setConfirmOpen(false)}
+      />
     </div>
   );
 }
