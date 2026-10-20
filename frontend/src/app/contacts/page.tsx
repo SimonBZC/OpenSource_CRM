@@ -124,18 +124,31 @@ export default function ContactsPage() {
                 <td className="px-4 py-3 text-black/70">{contact.email ?? "—"}</td>
                 <td className="px-4 py-3 text-black/70">{contact.phone ?? "—"}</td>
                 <td className="px-4 py-3">
-                  <div className="flex flex-wrap gap-x-3 gap-y-1">
+                  <div className="flex gap-1">
                     <Link
                       href={`/opportunities/new?${prefillQuery(contact)}`}
-                      className="whitespace-nowrap text-blue-700 hover:underline"
+                      title="Nouvelle opportunité"
+                      aria-label="Nouvelle opportunité"
+                      className="rounded-md p-1.5 text-blue-700 hover:bg-blue-50"
                     >
-                      Nouvelle opportunité
+                      {/* Mallette : opportunité */}
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5" aria-hidden="true">
+                        <rect x="3" y="7" width="18" height="13" rx="2" />
+                        <path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
+                        <path d="M3 13h18" />
+                      </svg>
                     </Link>
                     <Link
                       href={`/follow-ups/new?${prefillQuery(contact)}`}
-                      className="whitespace-nowrap text-blue-700 hover:underline"
+                      title="Nouvelle relance"
+                      aria-label="Nouvelle relance"
+                      className="rounded-md p-1.5 text-blue-700 hover:bg-blue-50"
                     >
-                      Nouvelle relance
+                      {/* Cloche : relance */}
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5" aria-hidden="true">
+                        <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+                        <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+                      </svg>
                     </Link>
                   </div>
                 </td>
