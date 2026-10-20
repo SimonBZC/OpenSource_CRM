@@ -111,9 +111,7 @@ final class ManualImporterTest extends TestCase
         $data = RawOpportunityData::fromArray([
             'title' => 'Développeur Symfony senior',
             'description' => 'Mission longue durée',
-            'url' => 'https://example.com/jobs/42',
-            'daily_rate_min' => 400,
-            'daily_rate_max' => 600,
+            'daily_rate' => 600,
             'remote' => true,
             'location' => 'Paris',
             'technologies' => ['PHP', 'Symfony'],
@@ -128,10 +126,8 @@ final class ManualImporterTest extends TestCase
         self::assertInstanceOf(Opportunity::class, $opportunity);
         self::assertSame('Développeur Symfony senior', $opportunity->getTitle());
         self::assertSame('Mission longue durée', $opportunity->getDescription());
-        self::assertSame('https://example.com/jobs/42', $opportunity->getUrl());
         self::assertSame(OpportunitySource::MANUAL, $opportunity->getSource());
-        self::assertSame(400, $opportunity->getDailyRateMin());
-        self::assertSame(600, $opportunity->getDailyRateMax());
+        self::assertSame(600, $opportunity->getDailyRate());
         self::assertTrue($opportunity->isRemote());
         self::assertSame('Paris', $opportunity->getLocation());
         self::assertSame(['PHP', 'Symfony'], $opportunity->getTechnologies());
@@ -237,7 +233,7 @@ final class ManualImporterTest extends TestCase
         self::assertCount(0, $capturedEvents);
     }
 
-    public function testImportReturnsValidationErrorWithoutAnySideEffectWhenUrlIsInvalid(): void
+    public function testImportReturnsValidationErrorWithoutAnySideEffectWhenDailyRateIsNegative(): void
     {
         [$importer, , , $entityManager, $capturedEvents] = $this->makeImporter();
 
@@ -246,14 +242,14 @@ final class ManualImporterTest extends TestCase
 
         $data = RawOpportunityData::fromArray([
             'title' => 'Mission valide',
-            'url' => 'ceci-nest-pas-une-url',
+            'daily_rate' => -1,
         ]);
 
         $result = $importer->import($data);
 
         self::assertSame(ImportStatus::VALIDATION_ERROR, $result->getStatus());
         self::assertNotEmpty($result->getMessages());
-        self::assertStringContainsString('url', $result->getMessages()[0]);
+        self::assertStringContainsString('dailyRate', $result->getMessages()[0]);
 
         self::assertCount(0, $capturedEvents);
     }
@@ -279,23 +275,22 @@ final class ManualImporterTest extends TestCase
 
     // --- DUPLICATE ----------------------------------------------------------
 
-    public function testImportReturnsDuplicateWhenAnOpportunityWithTheSameUrlAlreadyExists(): void
+    public function testImportReturnsDuplicateWhenSameTitleAndBothWithoutCompanyAlreadyExist(): void
     {
         [$importer, , $opportunityRepository, $entityManager, $capturedEvents] = $this->makeImporter();
 
         $existing = (new Opportunity())->setTitle('Mission déjà connue');
         $this->setId($existing, 99);
 
-        $opportunityRepository->method('findOneByUrl')
-            ->with('https://example.com/jobs/42')
+        $opportunityRepository->method('findOneByTitleAndCompany')
+            ->with('Mission déjà connue', null)
             ->willReturn($existing);
 
         $entityManager->expects(self::never())->method('persist');
         $entityManager->expects(self::never())->method('flush');
 
         $data = RawOpportunityData::fromArray([
-            'title' => 'Un autre titre',
-            'url' => 'https://example.com/jobs/42',
+            'title' => 'Mission déjà connue',
         ]);
 
         $result = $importer->import($data);

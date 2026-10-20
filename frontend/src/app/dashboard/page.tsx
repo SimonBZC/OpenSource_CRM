@@ -5,20 +5,20 @@ import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { toDisplayMessage } from "@/lib/api/errors";
-import { followUpsApi, opportunitiesApi, tasksApi } from "@/lib/api/resources";
+import { followUpsApi, opportunitiesApi, alertsApi } from "@/lib/api/resources";
 import {
   OPPORTUNITY_STATUSES,
   type FollowUp,
   type Opportunity,
   type OpportunityStatus,
-  type Task,
+  type Alert,
 } from "@/lib/api/types";
 import { formatDate, formatDateTime } from "@/lib/format";
 import {
   opportunityStatusBadgeClasses,
   opportunityStatusLabels,
-  taskPriorityBadgeClasses,
-  taskPriorityLabels,
+  alertPriorityBadgeClasses,
+  alertPriorityLabels,
 } from "@/lib/labels";
 
 /** Statuts d'opportunité "actifs" (hors clôturées) pour la section fort potentiel. */
@@ -63,8 +63,8 @@ export default function DashboardPage() {
   const [todayFollowUps, setTodayFollowUps] = useState<SectionState<FollowUp[]>>(
     initialSectionState(),
   );
-  const [tasksTodo, setTasksTodo] = useState<
-    SectionState<{ totalItems: number; items: Task[] }>
+  const [alertsTodo, setAlertsTodo] = useState<
+    SectionState<{ totalItems: number; items: Alert[] }>
   >(initialSectionState());
   const [highPotential, setHighPotential] = useState<SectionState<Opportunity[]>>(
     initialSectionState(),
@@ -131,16 +131,16 @@ export default function DashboardPage() {
       .then((res) => setTodayFollowUps({ loading: false, error: null, data: res.items }))
       .catch((err) => setTodayFollowUps({ loading: false, error: toDisplayMessage(err), data: null }));
 
-    tasksApi
+    alertsApi
       .list({
         "status[]": ["todo", "in_progress"],
         "order[dueDate]": "asc",
         itemsPerPage: 8,
       })
       .then((res) =>
-        setTasksTodo({ loading: false, error: null, data: { totalItems: res.totalItems, items: res.items } }),
+        setAlertsTodo({ loading: false, error: null, data: { totalItems: res.totalItems, items: res.items } }),
       )
-      .catch((err) => setTasksTodo({ loading: false, error: toDisplayMessage(err), data: null }));
+      .catch((err) => setAlertsTodo({ loading: false, error: toDisplayMessage(err), data: null }));
 
     opportunitiesApi
       .list({
@@ -210,9 +210,9 @@ export default function DashboardPage() {
           valueClassName="text-red-600"
         />
         <KpiCard
-          title="Tâches à faire"
-          href="/tasks"
-          state={tasksTodo}
+          title="Alertes à traiter"
+          href="/alerts"
+          state={alertsTodo}
           render={(data) => data.totalItems}
         />
       </div>
@@ -277,34 +277,34 @@ export default function DashboardPage() {
           )}
         </Section>
 
-        {/* Tâches à effectuer */}
+        {/* Alertes à traiter */}
         <Section
-          title="Tâches à effectuer"
-          loading={tasksTodo.loading}
-          error={tasksTodo.error}
-          seeAllHref="/tasks"
+          title="Alertes à traiter"
+          loading={alertsTodo.loading}
+          error={alertsTodo.error}
+          seeAllHref="/alerts"
         >
-          {tasksTodo.data && tasksTodo.data.items.length > 0 ? (
+          {alertsTodo.data && alertsTodo.data.items.length > 0 ? (
             <ul className="divide-y divide-black/5">
-              {tasksTodo.data.items.map((task) => (
-                <li key={task.id} className="flex items-center justify-between py-2">
-                  <Link href={`/tasks/${task.id}`} className="font-medium text-blue-700 hover:underline">
-                    {task.title}
+              {alertsTodo.data.items.map((alert) => (
+                <li key={alert.id} className="flex items-center justify-between py-2">
+                  <Link href={`/alerts/${alert.id}`} className="font-medium text-blue-700 hover:underline">
+                    {alert.title}
                   </Link>
                   <div className="flex items-center gap-2 text-sm text-black/60">
-                    {task.priority && (
+                    {alert.priority && (
                       <Badge
-                        label={taskPriorityLabels[task.priority]}
-                        className={taskPriorityBadgeClasses[task.priority]}
+                        label={alertPriorityLabels[alert.priority]}
+                        className={alertPriorityBadgeClasses[alert.priority]}
                       />
                     )}
-                    <span>{formatDateTime(task.dueDate)}</span>
+                    <span>{formatDateTime(alert.dueDate)}</span>
                   </div>
                 </li>
               ))}
             </ul>
           ) : (
-            !tasksTodo.loading && <EmptyState label="Aucune tâche à effectuer." />
+            !alertsTodo.loading && <EmptyState label="Aucune alerte à traiter." />
           )}
         </Section>
 

@@ -19,6 +19,7 @@ use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
 use App\Enum\FollowUpStatus;
 use App\Repository\FollowUpRepository;
+use App\State\FollowUpDeletionGuardProcessor;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
@@ -30,7 +31,15 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ApiResource(
     shortName: 'FollowUp',
     description: 'Relance planifiée auprès d\'une entreprise/contact, éventuellement liée à une opportunité.',
-    operations: [new GetCollection(), new Get(), new Post(), new Put(), new Patch(), new Delete()],
+    operations: [
+        new GetCollection(),
+        new Get(),
+        new Post(),
+        new Put(),
+        new Patch(),
+        // Une relance terminée ne peut pas être supprimée : voir App\State\FollowUpDeletionGuardProcessor.
+        new Delete(processor: FollowUpDeletionGuardProcessor::class),
+    ],
     normalizationContext: ['groups' => ['followUp:read']],
     denormalizationContext: ['groups' => ['followUp:write']],
 )]

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use ApiPlatform\Doctrine\Orm\Filter\BooleanFilter;
 use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
 use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
 use ApiPlatform\Metadata\ApiFilter;
@@ -33,6 +34,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 )]
 #[ApiFilter(SearchFilter::class, properties: ['firstName' => 'partial', 'lastName' => 'partial', 'email' => 'partial', 'company' => 'exact'])]
 #[ApiFilter(OrderFilter::class, properties: ['lastName', 'firstName', 'createdAt'])]
+#[ApiFilter(BooleanFilter::class, properties: ['active'])]
 class Contact
 {
     #[ORM\Id]
@@ -81,6 +83,20 @@ class Contact
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     #[Groups(['contact:read', 'contact:write'])]
     private ?string $notes = null;
+
+    /** Case « Je me suis présenté » : alimente la règle d'alerte contact_not_presented. */
+    #[ORM\Column(options: ['default' => false])]
+    #[Groups(['contact:read', 'contact:write'])]
+    private bool $presentationSent = false;
+
+    /**
+     * Case « Contact actif » : un contact inactif est masqué par défaut de la
+     * liste, absent des listes de choix et ignoré par les règles d'alerte. Il
+     * reste consultable et réactivable.
+     */
+    #[ORM\Column(options: ['default' => true])]
+    #[Groups(['contact:read', 'contact:write'])]
+    private bool $active = true;
 
     #[ORM\Column]
     #[Groups(['contact:read'])]
@@ -203,6 +219,38 @@ class Contact
         $this->notes = $notes;
 
         return $this;
+    }
+
+    public function isPresentationSent(): bool
+    {
+        return $this->presentationSent;
+    }
+
+    public function setPresentationSent(bool $presentationSent): static
+    {
+        $this->presentationSent = $presentationSent;
+
+        return $this;
+    }
+
+    public function isActive(): bool
+    {
+        return $this->active;
+    }
+
+    public function setActive(bool $active): static
+    {
+        $this->active = $active;
+
+        return $this;
+    }
+
+    /**
+     * Prénom et nom, séparés par une espace (le prénom est facultatif).
+     */
+    public function getFullName(): string
+    {
+        return trim(sprintf('%s %s', $this->firstName ?? '', $this->lastName));
     }
 
     public function getCreatedAt(): \DateTimeImmutable

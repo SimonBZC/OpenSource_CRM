@@ -422,87 +422,52 @@ final class OpportunityAnalysisControllerTest extends TestCase
         self::assertNotContains('technologies', $this->decode($response)['appliedFields']);
     }
 
-    // --- Persistence policy: dailyRateMin / dailyRateMax ---------------------
+    // --- Persistence policy: dailyRate ----------------------------------------
 
-    public function testDailyRateMinAndMaxAreBothAppliedWhenBothCurrentlyNull(): void
+    public function testDailyRateTakesTjmMaxWhenCurrentlyNull(): void
     {
         $opportunity = $this->makeOpportunity();
         [$controller, $repository, , , , $llmProvider] = $this->makeController();
 
         $repository->method('find')->willReturn($opportunity);
-        $llmProvider->method('completeJson')->willReturn($this->validLlmPayload(['tjm_min' => 400, 'tjm_max' => 600]));
+        $llmProvider->method('completeJson')->willReturn($this->validLlmPayload(['tjm_min' => 500, 'tjm_max' => 600]));
 
         $response = $controller->__invoke(1);
 
-        self::assertSame(400, $opportunity->getDailyRateMin());
-        self::assertSame(600, $opportunity->getDailyRateMax());
-        $applied = $this->decode($response)['appliedFields'];
-        self::assertContains('dailyRateMin', $applied);
-        self::assertContains('dailyRateMax', $applied);
+        self::assertSame(600, $opportunity->getDailyRate());
+        $decoded = $this->decode($response);
+        self::assertContains('dailyRate', $decoded['appliedFields']);
+        // Le contrat de sortie du LLM garde la fourchette min/max.
+        self::assertSame(500, $decoded['analysis']['tjmMin']);
+        self::assertSame(600, $decoded['analysis']['tjmMax']);
     }
 
-    public function testDailyRateMinIsNotOverwrittenWhenAlreadyFilled(): void
+    public function testDailyRateFallsBackToTjmMinWhenTjmMaxIsNull(): void
     {
-        $opportunity = $this->makeOpportunity()->setDailyRateMin(300);
+        $opportunity = $this->makeOpportunity();
         [$controller, $repository, , , , $llmProvider] = $this->makeController();
 
         $repository->method('find')->willReturn($opportunity);
-        // tjm_max left null to isolate the min-overwrite behaviour from the
-        // min/max invariant guard tested separately below.
-        $llmProvider->method('completeJson')->willReturn($this->validLlmPayload(['tjm_min' => 900, 'tjm_max' => null]));
+        $llmProvider->method('completeJson')->willReturn($this->validLlmPayload(['tjm_min' => 500, 'tjm_max' => null]));
 
         $response = $controller->__invoke(1);
 
-        self::assertSame(300, $opportunity->getDailyRateMin());
-        self::assertNull($opportunity->getDailyRateMax());
-        self::assertNotContains('dailyRateMin', $this->decode($response)['appliedFields']);
+        self::assertSame(500, $opportunity->getDailyRate());
+        self::assertContains('dailyRate', $this->decode($response)['appliedFields']);
     }
 
-    public function testDailyRateMaxIsNotOverwrittenWhenAlreadyFilled(): void
+    public function testDailyRateIsNotOverwrittenWhenAlreadyFilled(): void
     {
-        $opportunity = $this->makeOpportunity()->setDailyRateMax(500);
+        $opportunity = $this->makeOpportunity()->setDailyRate(550);
         [$controller, $repository, , , , $llmProvider] = $this->makeController();
 
         $repository->method('find')->willReturn($opportunity);
-        $llmProvider->method('completeJson')->willReturn($this->validLlmPayload(['tjm_min' => null, 'tjm_max' => 999]));
+        $llmProvider->method('completeJson')->willReturn($this->validLlmPayload(['tjm_min' => 500, 'tjm_max' => 600]));
 
         $response = $controller->__invoke(1);
 
-        self::assertSame(500, $opportunity->getDailyRateMax());
-        self::assertNull($opportunity->getDailyRateMin());
-        self::assertNotContains('dailyRateMax', $this->decode($response)['appliedFields']);
-    }
-
-    public function testDailyRateMinIsNotAppliedWhenItWouldExceedExistingMax(): void
-    {
-        $opportunity = $this->makeOpportunity()->setDailyRateMax(400);
-        self::assertNull($opportunity->getDailyRateMin());
-        [$controller, $repository, , , , $llmProvider] = $this->makeController();
-
-        $repository->method('find')->willReturn($opportunity);
-        $llmProvider->method('completeJson')->willReturn($this->validLlmPayload(['tjm_min' => 900, 'tjm_max' => null]));
-
-        $response = $controller->__invoke(1);
-
-        self::assertNull($opportunity->getDailyRateMin());
-        self::assertSame(400, $opportunity->getDailyRateMax());
-        self::assertNotContains('dailyRateMin', $this->decode($response)['appliedFields']);
-    }
-
-    public function testDailyRateMaxIsNotAppliedWhenItWouldBeBelowExistingMin(): void
-    {
-        $opportunity = $this->makeOpportunity()->setDailyRateMin(500);
-        self::assertNull($opportunity->getDailyRateMax());
-        [$controller, $repository, , , , $llmProvider] = $this->makeController();
-
-        $repository->method('find')->willReturn($opportunity);
-        $llmProvider->method('completeJson')->willReturn($this->validLlmPayload(['tjm_min' => null, 'tjm_max' => 300]));
-
-        $response = $controller->__invoke(1);
-
-        self::assertNull($opportunity->getDailyRateMax());
-        self::assertSame(500, $opportunity->getDailyRateMin());
-        self::assertNotContains('dailyRateMax', $this->decode($response)['appliedFields']);
+        self::assertSame(550, $opportunity->getDailyRate());
+        self::assertNotContains('dailyRate', $this->decode($response)['appliedFields']);
     }
 
     // --- Persistence policy: location / duration / startDate -----------------
@@ -617,7 +582,6 @@ final class OpportunityAnalysisControllerTest extends TestCase
         $opportunity = $this->makeOpportunity()
             ->setTitle('Titre original')
             ->setDescription('Description originale')
-            ->setUrl('https://example.com/mission-originale')
             ->setNotes('Notes originales');
 
         $originalStatus = $opportunity->getStatus();
@@ -634,7 +598,6 @@ final class OpportunityAnalysisControllerTest extends TestCase
 
         self::assertSame('Titre original', $opportunity->getTitle());
         self::assertSame('Description originale', $opportunity->getDescription());
-        self::assertSame('https://example.com/mission-originale', $opportunity->getUrl());
         self::assertSame('Notes originales', $opportunity->getNotes());
         self::assertSame($originalStatus, $opportunity->getStatus());
         self::assertSame($originalSource, $opportunity->getSource());

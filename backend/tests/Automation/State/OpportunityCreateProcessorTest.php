@@ -9,8 +9,8 @@ use ApiPlatform\Metadata\Post;
 use ApiPlatform\State\ProcessorInterface;
 use App\Automation\Event\OpportunityCreated;
 use App\Automation\State\OpportunityCreateProcessor;
+use App\Entity\Alert;
 use App\Entity\Opportunity;
-use App\Entity\Task;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
 use Symfony\Component\EventDispatcher\EventDispatcher;
@@ -88,12 +88,12 @@ final class OpportunityCreateProcessorTest extends TestCase
         // renvoyer autre chose (null pour un no-op, ou une autre entité).
         [$processor, $decorated, $capturedEvents] = $this->makeProcessor();
 
-        $task = new Task();
-        $decorated->method('process')->willReturn($task);
+        $alert = new Alert();
+        $decorated->method('process')->willReturn($alert);
 
-        $result = $processor->process($task, new Post());
+        $result = $processor->process($alert, new Post());
 
-        self::assertSame($task, $result);
+        self::assertSame($alert, $result);
         self::assertCount(0, $capturedEvents);
     }
 

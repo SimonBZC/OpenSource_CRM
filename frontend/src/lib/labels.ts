@@ -3,8 +3,9 @@ import type {
   InteractionType,
   OpportunitySource,
   OpportunityStatus,
-  TaskPriority,
-  TaskStatus,
+  AlertPriority,
+  AlertRuleType,
+  AlertStatus,
 } from "@/lib/api/types";
 
 /** Libellés FR + classes Tailwind de badge pour les statuts d'opportunité. */
@@ -42,9 +43,6 @@ export const opportunitySourceLabels: Record<OpportunitySource, string> = {
   other: "Autre",
 };
 
-// Company.source réutilise les mêmes valeurs qu'OpportunitySource.
-export const companySourceLabels = opportunitySourceLabels;
-
 export const followUpStatusLabels: Record<FollowUpStatus, string> = {
   todo: "À faire",
   done: "Terminée",
@@ -57,32 +55,48 @@ export const followUpStatusBadgeClasses: Record<FollowUpStatus, string> = {
   cancelled: "bg-gray-200 text-gray-600",
 };
 
-export const taskStatusLabels: Record<TaskStatus, string> = {
+export const alertStatusLabels: Record<AlertStatus, string> = {
   todo: "À faire",
   in_progress: "En cours",
   done: "Terminée",
   cancelled: "Annulée",
 };
 
-export const taskStatusBadgeClasses: Record<TaskStatus, string> = {
+export const alertStatusBadgeClasses: Record<AlertStatus, string> = {
   todo: "bg-blue-100 text-blue-700",
   in_progress: "bg-indigo-100 text-indigo-700",
   done: "bg-green-100 text-green-700",
   cancelled: "bg-gray-200 text-gray-600",
 };
 
-export const taskPriorityLabels: Record<TaskPriority, string> = {
+export const alertPriorityLabels: Record<AlertPriority, string> = {
   low: "Basse",
   medium: "Moyenne",
   high: "Haute",
   urgent: "Urgente",
 };
 
-export const taskPriorityBadgeClasses: Record<TaskPriority, string> = {
+export const alertPriorityBadgeClasses: Record<AlertPriority, string> = {
   low: "bg-gray-100 text-gray-600",
   medium: "bg-blue-100 text-blue-700",
   high: "bg-amber-100 text-amber-800",
   urgent: "bg-red-100 text-red-700",
+};
+
+/** Libellés et explications des règles d'alerte configurables (Paramètres > Règles). */
+export const alertRuleTypeLabels: Record<AlertRuleType, string> = {
+  contact_follow_up_stale: "Contact sans relance récente",
+  opportunity_no_answer: "Opportunité sans réponse",
+  contact_not_presented: "Présentation non envoyée",
+};
+
+export const alertRuleTypeDescriptions: Record<AlertRuleType, string> = {
+  contact_follow_up_stale:
+    "Contact sans relance « À faire » dont la dernière relance terminée (ou, à défaut, la création) date de plus de N jours.",
+  opportunity_no_answer:
+    "Opportunité « Contactée » ou « En attente » dont le statut n'a pas changé depuis plus de N jours.",
+  contact_not_presented:
+    "Contact non coché « Présenté », créé il y a plus de N jours (0 : tous les contacts non présentés).",
 };
 
 export const interactionTypeLabels: Record<InteractionType, string> = {

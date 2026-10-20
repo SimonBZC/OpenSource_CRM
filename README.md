@@ -1,7 +1,7 @@
 # FreeCRM
 
 Outil personnel de prospection freelance : centralise entreprises, contacts, opportunités,
-relances, tâches, interactions et sources.
+relances, alertes, interactions et sources.
 
 > **Application strictement locale.** Pas d'authentification, pas de comptes, pas de rôles,
 > pas de multi-utilisateur. Ce n'est pas une application destinée à être exposée sur Internet.
@@ -12,9 +12,9 @@ Les 9 phases du plan initial sont terminées :
 
 1. Socle Docker + Symfony + Next.js
 2. Modèle de données (entités, migrations, fixtures)
-3. API Platform (CRUD Company/Contact/Opportunity/FollowUp/Task/Interaction, filtres, recherche, tri, pagination)
+3. API Platform (CRUD Company/Contact/Opportunity/FollowUp/Alert/Interaction, filtres, recherche, tri, pagination)
 4. Frontend CRM (listes, fiches détaillées, formulaires)
-5. Dashboard orienté action, relances, tâches, filtres avancés sur les opportunités
+5. Dashboard orienté action, relances, alertes, filtres avancés sur les opportunités
 6. Architecture IA (`LLMProviderInterface` → `OpenAiProvider`, `OpportunityAnalyzer`)
 7. Analyse IA branchée sur un vrai flux (`POST /api/opportunities/{id}/analyze`, bouton frontend)
 8. Architecture d'automatisation événementielle (`DomainEventBus`, `AutomationRuleInterface`, 2 règles réelles)
@@ -55,7 +55,7 @@ cp .env.example .env
 
 docker compose up -d --build
 
-# Charger les fixtures de démonstration (entreprises, contacts, opportunités, relances, tâches)
+# Charger les fixtures de démonstration (entreprises, contacts, opportunités, relances, alertes)
 docker compose exec app php bin/console doctrine:fixtures:load
 ```
 
@@ -91,14 +91,50 @@ renvoie la description JSON-LD/Hydra.
 ### CRM
 
 - **Dashboard** (`/dashboard`) orienté action : opportunités à traiter, relances du jour /
-  en retard, tâches à effectuer, opportunités à fort potentiel, opportunités récentes.
-- **Entreprises, contacts, opportunités** (`/companies`, `/contacts`, `/opportunities`) :
+  en retard, alertes à traiter, opportunités à fort potentiel, opportunités récentes.
+- **Contacts, opportunités** (`/contacts`, `/opportunities`) :
   listes filtrables/triables, fiches détaillées, création/édition.
+- **Entreprises** : pas de page dédiée. Elles se créent depuis le formulaire contact et restent
+  exposées par l'API (`/api/companies`).
+- **Unicité des entreprises** : deux entreprises ne peuvent pas porter le même nom (casse et
+  espaces en début/fin ignorés). L'API refuse un doublon sur POST/PUT/PATCH `/api/companies`
+  (422, violation sur `name`).
+- **Création d'entreprise depuis le formulaire contact** : si aucune entreprise n'est choisie,
+  « Ou créer une entreprise » + « Rechercher » vérifie le nom, puis l'entreprise (nom + secteur)
+  est créée avec le contact. Si l'enregistrement du contact échoue, l'entreprise est supprimée.
+- **Actions sur la liste des contacts** : « Nouvelle opportunité » et « Nouvelle relance » ouvrent
+  le formulaire pré-rempli via `?contact={id}&company={id}` (`company` omis si le contact n'en a pas).
 - **Opportunités** : statut (9 valeurs, extensible), source (7 valeurs, extensible), TJM
-  min/max, remote, technologies, score, raison du score. Filtres avancés : statut, source,
-  score, technologie, remote, TJM, dates, recherche textuelle.
-- **Relances** (`/follow-ups`) et **tâches** (`/tasks`) : filtres par statut/priorité/échéance,
+  unique (`dailyRate`, ≥ 0), remote, technologies, score, raison du score (le score s'affiche
+  sur la fiche, pas dans la liste). Filtres de la liste : statut, source, technologie, remote,
+  TJM ≥ / TJM ≤ (`dailyRate[gte]`/`dailyRate[lte]`), dates, recherche textuelle. L'API garde
+  le filtre `score[gte|lte]` (utilisé par le Dashboard).
+- **Messages pré-construits** (Paramètres > Messages, `/settings/messages`) : titre (unique, casse
+  et espaces en début/fin ignorés, 422 sur `title`) et corps avec indicateurs `{%prenom%}`, `{%nom%}`,
+  `{%entreprise%}` (entreprise du contact). API : CRUD `/api/message_templates` et
+  `GET /api/message_templates/{id}/render?contact={id}` → `{title, body, missing}` (lecture seule ;
+  donnée manquante = indicateur laissé tel quel et listé dans `missing`). Sur les relances, le bouton
+  « Message » affiche le message rempli pour le contact de la relance, avec « Copier ». Aucun envoi.
+- **Relances** (`/follow-ups`) et **alertes** (`/alerts`) : filtres par statut/priorité/échéance,
   actions rapides (marquer comme faite/annulée).
+- **Case « Je me suis présenté »** sur le contact (création et modification, champ API
+  `presentationSent`, faux par défaut) : alimente la règle « Présentation non envoyée ».
+- **Contacts inactifs** : case « Contact actif » sur le contact (création et modification,
+  champ API `active`, vrai par défaut, filtre `GET /api/contacts?active=true|false`). La liste
+  des contacts affiche les actifs par défaut (filtre « Actifs » / « Inactifs » / « Tous », badge
+  « Inactif »). Un contact inactif n'est plus proposé dans les listes de choix (relance,
+  opportunité, alerte), sauf s'il est déjà lié à l'élément modifié (« Nom (inactif) »), et il
+  est ignoré par les trois règles d'alerte (pour *Opportunité sans réponse* : opportunité dont
+  le contact est inactif ; sans contact, elle reste évaluée) ainsi que par les règles
+  automatiques « relance échue » (pas de notification) et « score ≥ 80 » (pas d'alerte) ; une
+  relance ou une opportunité sans contact reste traitée. Rien d'autre ne change : fiche,
+  relances, opportunités, alertes ouvertes et messages restent accessibles ; recocher la case
+  le réactive. Migration `Version20261020170000` (non destructive, tous les contacts existants
+  actifs) à lancer : `docker compose exec app php bin/console doctrine:migrations:migrate`.
+- **Notifications** : chaque écriture (création, modification, suppression, « marquer comme
+  faite », « Vérifier les règles », analyse IA, copie de message) est confirmée par une notification verte
+  en bas à droite (4 s) ; une erreur d'action s'y affiche en rouge jusqu'à fermeture. Les erreurs
+  de validation restent sous les champs, les erreurs de chargement dans le bandeau de la page.
 
 ### IA (optionnelle, jamais obligatoire)
 
@@ -108,7 +144,8 @@ renvoie la description JSON-LD/Hydra.
   existante. Le LLM ne persiste jamais rien lui-même : le backend valide la réponse
   structurée puis décide quoi appliquer (`score`/`scoreReason` toujours mis à jour,
   les autres champs — technologies, TJM, localisation... — uniquement s'ils étaient vides,
-  pour ne jamais écraser une saisie manuelle).
+  pour ne jamais écraser une saisie manuelle). Le LLM renvoie une fourchette `tjmMin`/`tjmMax` ;
+  le TJM de l'opportunité reçoit `tjmMax`, à défaut `tjmMin`.
 - Sans `OPENAI_API_KEY` configurée, l'endpoint répond `503` proprement — le reste du CRM
   fonctionne normalement.
 
@@ -119,8 +156,31 @@ renvoie la description JSON-LD/Hydra.
   code existant.
 - Événements émis : `OpportunityCreated`, `OpportunityAnalyzed`, `FollowUpDue`.
 - Règles actives : score d'opportunité ≥ 80 après analyse → création automatique d'une
-  tâche de relance ; relance échue et toujours à faire → notification (stub loggé,
+  alerte de relance ; relance échue et toujours à faire → notification (stub loggé,
   canal réel à brancher plus tard sans changer l'architecture).
+- **Règles d'alerte configurables** (Paramètres > Règles, `/settings/rules`) : catalogue fixe
+  de trois règles, chacune activable, avec un délai N en jours (entier ≥ 0, 422 sinon) et la
+  priorité des alertes créées. Livrées activées, priorité moyenne :
+  - *Contact sans relance récente* (`contact_follow_up_stale`, 90 j) : contact sans relance
+    « À faire » dont la dernière relance terminée (`completedAt`), ou à défaut la création, date
+    de plus de N jours (relances annulées ignorées) ;
+  - *Opportunité sans réponse* (`opportunity_no_answer`, 15 j) : opportunité « Contactée » ou
+    « En attente » dont le dernier changement de statut (`statusChangedAt`, lecture seule, mis à
+    jour à chaque changement effectif de statut) date de plus de N jours ;
+  - *Présentation non envoyée* (`contact_not_presented`, 7 j) : contact non « Présenté » créé
+    il y a plus de N jours (N = 0 : tous les contacts non présentés).
+
+  Évaluation **uniquement** par le bouton « Vérifier les règles » de la page Alertes
+  (`POST /api/alert_rules/evaluate` → `{created, byRule}`), jamais automatiquement. Pas de
+  doublon tant qu'une alerte de la même règle est « À faire » ou « En cours » pour la même cible ;
+  une fois terminée ou annulée, une nouvelle peut naître. API des réglages : `GET` et `PATCH`
+  `/api/alert_rules` (ni création ni suppression). Code : `backend/src/Automation/Scheduled/`
+  (une classe par règle + `AlertRuleEvaluator`), distinct des règles événementielles.
+  Migration `Version20261020153000` (non destructive) : table `alert_rule` avec les trois règles
+  par défaut, `alert.rule_type`, `contact.presentation_sent` (faux pour l'existant) et
+  `opportunity.status_changed_at` (rempli avec `updated_at` pour l'existant). Tant qu'elle n'est
+  pas lancée (`docker compose exec app php bin/console doctrine:migrations:migrate`), l'API
+  réelle échoue sur les contacts, opportunités et alertes.
 - Commande `php bin/console app:automation:check-due-followups [--dry-run]` pour scanner
   les relances du jour (pas encore de scheduler/cron branché — à faire lors d'une
   itération future).
@@ -129,7 +189,8 @@ renvoie la description JSON-LD/Hydra.
 
 - `App\Import\OpportunityImporterInterface` : reçoit une opportunité standardisée
   (`RawOpportunityData`) et retourne un résultat d'import structuré.
-- `ManualImporter` : fonctionnel, réutilise le chemin de création standard.
+- `ManualImporter` : fonctionnel, réutilise le chemin de création standard. Doublon = même
+  titre et même entreprise (ou toutes deux sans entreprise). TJM via la clé `daily_rate`.
 - `LinkedInImporter` / `MaltImporter` : **placeholders volontaires**, lèvent une
   exception explicite (`NotImplementedImporterException`), aucun appel réseau ni
   scraping — conformément au choix de ne pas automatiser LinkedIn dans ce MVP.
@@ -238,7 +299,7 @@ Postgres ouvert pendant l'opération corrompt la base.
 .
 ├── backend/
 │   ├── src/
-│   │   ├── Entity/         Company, Contact, Opportunity, FollowUp, Task, Interaction
+│   │   ├── Entity/         Company, Contact, Opportunity, FollowUp, Alert, Interaction
 │   │   ├── Enum/           Statuts/sources/types extensibles (backed enums)
 │   │   ├── Filter/         Filtres API Platform personnalisés (technologie, recherche...)
 │   │   ├── Ai/             Abstraction IA : LLMProviderInterface, OpenAiProvider, OpportunityAnalyzer
@@ -248,7 +309,7 @@ Postgres ouvert pendant l'opération corrompt la base.
 │   ├── migrations/
 │   └── tests/
 ├── frontend/
-│   └── src/app/            dashboard/, companies/, contacts/, opportunities/, follow-ups/, tasks/, settings/
+│   └── src/app/            dashboard/, contacts/, opportunities/, follow-ups/, alerts/, settings/
 ├── docker-compose.yml      Les 3 services
 ├── .env.example            Variables surchargeables
 └── README.md

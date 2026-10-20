@@ -6,8 +6,11 @@ import { use, useCallback, useEffect, useState } from "react";
 import { OpportunityAnalysisPanel } from "@/components/opportunities/OpportunityAnalysisPanel";
 import { OpportunityFormFields } from "@/components/opportunities/OpportunityFormFields";
 import { Badge } from "@/components/ui/Badge";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
+import { useNotify } from "@/components/ui/Toaster";
 import { ApiError, ApiValidationError, toDisplayMessage } from "@/lib/api/errors";
+import { idFromIri } from "@/lib/api/iri";
 import { analyzeOpportunity, companiesApi, contactsApi, opportunitiesApi } from "@/lib/api/resources";
 import type {
   Company,
@@ -18,6 +21,7 @@ import type {
 } from "@/lib/api/types";
 import { formatDate } from "@/lib/format";
 import { opportunityStatusBadgeClasses, opportunityStatusLabels } from "@/lib/labels";
+import { ensureOption } from "@/lib/prefill";
 
 export default function OpportunityDetailPage({
   params,
@@ -26,6 +30,7 @@ export default function OpportunityDetailPage({
 }) {
   const { id } = use(params);
   const router = useRouter();
+  const notify = useNotify();
 
   const [opportunity, setOpportunity] = useState<Opportunity | null>(null);
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -36,8 +41,8 @@ export default function OpportunityDetailPage({
   const [validationError, setValidationError] = useState<ApiValidationError | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
-  const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [analysisResult, setAnalysisResult] = useState<OpportunityAnalyzeResponse | null>(null);
 
   const load = useCallback(async () => {
@@ -47,21 +52,22 @@ export default function OpportunityDetailPage({
       const [data, companiesResult, contactsResult] = await Promise.all([
         opportunitiesApi.get(id),
         companiesApi.list({ itemsPerPage: 100, "order[name]": "asc" }),
-        contactsApi.list({ itemsPerPage: 100, "order[lastName]": "asc" }),
+        contactsApi.list({ itemsPerPage: 100, active: true, "order[lastName]": "asc" }),
       ]);
       setOpportunity(data);
       setCompanies(companiesResult.items);
-      setContacts(contactsResult.items);
+      // Contacts actifs, plus le contact déjà lié s'il est inactif (ou hors des 100 premiers).
+      setContacts(
+        await ensureOption(contactsResult.items, idFromIri(data.contact), (cid) => contactsApi.get(cid)),
+      );
       setValues({
         title: data.title,
         description: data.description,
         company: data.company,
         contact: data.contact,
         source: data.source,
-        url: data.url,
         status: data.status,
-        dailyRateMin: data.dailyRateMin,
-        dailyRateMax: data.dailyRateMax,
+        dailyRate: data.dailyRate,
         remote: data.remote,
         location: data.location,
         duration: data.duration,
@@ -91,16 +97,16 @@ export default function OpportunityDetailPage({
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
-    setError(null);
     setValidationError(null);
     try {
       const updated = await opportunitiesApi.update(id, values);
       setOpportunity(updated);
+      notify.success("Opportunité modifiée");
     } catch (err) {
       if (err instanceof ApiValidationError) {
         setValidationError(err);
       } else {
-        setError(toDisplayMessage(err));
+        notify.error(toDisplayMessage(err));
       }
     } finally {
       setSaving(false);
@@ -108,21 +114,21 @@ export default function OpportunityDetailPage({
   }
 
   async function handleDelete() {
-    if (!confirm("Supprimer définitivement cette opportunité ?")) return;
+    if (deleting) return;
     setDeleting(true);
-    setError(null);
     try {
       await opportunitiesApi.remove(id);
+      notify.success("Opportunité supprimée");
       router.push("/opportunities");
     } catch (err) {
-      setError(toDisplayMessage(err));
+      notify.error(toDisplayMessage(err));
       setDeleting(false);
+      setConfirmOpen(false);
     }
   }
 
   async function handleAnalyze() {
     setAnalyzing(true);
-    setAnalysisError(null);
     setAnalysisResult(null);
     try {
       const result = await analyzeOpportunity(id);
@@ -133,10 +139,8 @@ export default function OpportunityDetailPage({
         company: result.opportunity.company,
         contact: result.opportunity.contact,
         source: result.opportunity.source,
-        url: result.opportunity.url,
         status: result.opportunity.status,
-        dailyRateMin: result.opportunity.dailyRateMin,
-        dailyRateMax: result.opportunity.dailyRateMax,
+        dailyRate: result.opportunity.dailyRate,
         remote: result.opportunity.remote,
         location: result.opportunity.location,
         duration: result.opportunity.duration,
@@ -145,13 +149,14 @@ export default function OpportunityDetailPage({
         notes: result.opportunity.notes,
       });
       setAnalysisResult(result);
+      notify.success("Opportunité analysée");
     } catch (err) {
       if (err instanceof ApiError && err.errorCode === "ai_not_configured") {
-        setAnalysisError(
+        notify.error(
           "L'analyse IA n'est pas configurée. Renseignez la clé OPENAI_API_KEY côté backend pour l'activer. Le CRM fonctionne normalement sans.",
         );
       } else {
-        setAnalysisError(toDisplayMessage(err));
+        notify.error(toDisplayMessage(err));
       }
     } finally {
       setAnalyzing(false);
@@ -199,19 +204,12 @@ export default function OpportunityDetailPage({
           </button>
           <button
             type="button"
-            onClick={handleDelete}
+            onClick={() => setConfirmOpen(true)}
             disabled={deleting}
             className="rounded-md border border-red-300 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
           >
             {deleting ? "Suppression..." : "Supprimer"}
           </button>
-        </div>
-      </div>
-
-      <div className="mt-4">
-        <ErrorBanner message={error} />
-        <div className="mt-2">
-          <ErrorBanner message={analysisError} />
         </div>
       </div>
 
@@ -256,6 +254,15 @@ export default function OpportunityDetailPage({
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Supprimer cette opportunité ?"
+        message={`L'opportunité « ${opportunity.title} » sera supprimée définitivement.`}
+        busy={deleting}
+        onConfirm={handleDelete}
+        onCancel={() => setConfirmOpen(false)}
+      />
     </div>
   );
 }

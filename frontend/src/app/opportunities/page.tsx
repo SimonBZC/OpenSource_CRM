@@ -62,8 +62,6 @@ function OpportunitiesPageContent() {
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
 
-  const [scoreMin, setScoreMin] = useState("");
-  const [scoreMax, setScoreMax] = useState("");
   const [rateMin, setRateMin] = useState("");
   const [rateMax, setRateMax] = useState("");
   const [remote, setRemote] = useState<RemoteFilter>("all");
@@ -115,10 +113,8 @@ function OpportunitiesPageContent() {
         "order[createdAt]": "desc",
         source: source || undefined,
         search: search || undefined,
-        "score[gte]": scoreMin !== "" ? Number(scoreMin) : undefined,
-        "score[lte]": scoreMax !== "" ? Number(scoreMax) : undefined,
-        "dailyRateMin[gte]": rateMin !== "" ? Number(rateMin) : undefined,
-        "dailyRateMax[lte]": rateMax !== "" ? Number(rateMax) : undefined,
+        "dailyRate[gte]": rateMin !== "" ? Number(rateMin) : undefined,
+        "dailyRate[lte]": rateMax !== "" ? Number(rateMax) : undefined,
         remote: remote === "all" ? undefined : remote,
         "technology[]": selectedTechnologies.length > 0 ? selectedTechnologies : undefined,
         "startDate[after]": startDateAfter ? `${startDateAfter}T00:00:00` : undefined,
@@ -157,8 +153,6 @@ function OpportunitiesPageContent() {
     statusOverride,
     source,
     search,
-    scoreMin,
-    scoreMax,
     rateMin,
     rateMax,
     remote,
@@ -174,8 +168,6 @@ function OpportunitiesPageContent() {
     setSource("");
     setSearchInput("");
     setSearch("");
-    setScoreMin("");
-    setScoreMax("");
     setRateMin("");
     setRateMax("");
     setRemote("all");
@@ -275,38 +267,11 @@ function OpportunitiesPageContent() {
 
         <div className="mt-3 flex flex-wrap items-end gap-3">
           <div>
-            <label className="block text-xs font-medium text-black/60">Score min</label>
+            <label className="block text-xs font-medium text-black/60">TJM ≥</label>
             <input
               type="number"
               min={0}
-              max={100}
-              value={scoreMin}
-              onChange={(e) => {
-                setPage(1);
-                setScoreMin(e.target.value);
-              }}
-              className="mt-1 w-24 rounded-md border border-black/15 px-3 py-2 text-sm outline-none focus:border-blue-500"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-black/60">Score max</label>
-            <input
-              type="number"
-              min={0}
-              max={100}
-              value={scoreMax}
-              onChange={(e) => {
-                setPage(1);
-                setScoreMax(e.target.value);
-              }}
-              className="mt-1 w-24 rounded-md border border-black/15 px-3 py-2 text-sm outline-none focus:border-blue-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium text-black/60">TJM min ≥</label>
-            <input
-              type="number"
+              step={1}
               value={rateMin}
               onChange={(e) => {
                 setPage(1);
@@ -316,9 +281,11 @@ function OpportunitiesPageContent() {
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-black/60">TJM max ≤</label>
+            <label className="block text-xs font-medium text-black/60">TJM ≤</label>
             <input
               type="number"
+              min={0}
+              step={1}
               value={rateMax}
               onChange={(e) => {
                 setPage(1);
@@ -415,7 +382,6 @@ function OpportunitiesPageContent() {
               <th className="px-4 py-3 font-medium">Titre</th>
               <th className="px-4 py-3 font-medium">Entreprise</th>
               <th className="px-4 py-3 font-medium">Statut</th>
-              <th className="px-4 py-3 font-medium">Score</th>
               <th className="px-4 py-3 font-medium">TJM</th>
               <th className="px-4 py-3 font-medium">Créée le</th>
             </tr>
@@ -444,10 +410,7 @@ function OpportunitiesPageContent() {
                   />
                 </td>
                 <td className="px-4 py-3 text-black/70">
-                  {opportunity.score ?? "—"}
-                </td>
-                <td className="px-4 py-3 text-black/70">
-                  {formatDailyRate(opportunity.dailyRateMin, opportunity.dailyRateMax)}
+                  {formatDailyRate(opportunity.dailyRate)}
                 </td>
                 <td className="px-4 py-3 text-black/70">
                   {formatDate(opportunity.createdAt)}
@@ -456,7 +419,7 @@ function OpportunitiesPageContent() {
             ))}
             {!loading && items.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-black/50">
+                <td colSpan={5} className="px-4 py-8 text-center text-black/50">
                   Aucune opportunité trouvée.
                 </td>
               </tr>

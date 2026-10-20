@@ -36,10 +36,6 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\HasLifecycleCallbacks]
 #[ORM\Index(columns: ['status'], name: 'idx_opportunity_status')]
 #[ORM\Index(columns: ['source'], name: 'idx_opportunity_source')]
-#[Assert\Expression(
-    expression: 'this.getDailyRateMin() === null or this.getDailyRateMax() === null or this.getDailyRateMin() <= this.getDailyRateMax()',
-    message: 'Le TJM minimum doit être inférieur ou égal au TJM maximum.',
-)]
 #[ApiResource(
     shortName: 'Opportunity',
     description: "Opportunité de mission freelance : cœur du pipeline de prospection (statut, TJM, technologies, scoring).",
@@ -61,12 +57,12 @@ use Symfony\Component\Validator\Constraints as Assert;
 )]
 #[ApiFilter(SearchFilter::class, properties: ['title' => 'partial', 'description' => 'partial', 'company' => 'exact', 'contact' => 'exact'])]
 #[ApiFilter(BackedEnumFilter::class, properties: ['status', 'source'])]
-#[ApiFilter(RangeFilter::class, properties: ['score', 'dailyRateMin', 'dailyRateMax'])]
+#[ApiFilter(RangeFilter::class, properties: ['score', 'dailyRate'])]
 #[ApiFilter(BooleanFilter::class, properties: ['remote'])]
 #[ApiFilter(DateFilter::class, properties: ['createdAt', 'startDate'])]
 #[ApiFilter(TechnologyFilter::class)]
 #[ApiFilter(OpportunitySearchFilter::class)]
-#[ApiFilter(OrderFilter::class, properties: ['createdAt', 'updatedAt', 'score', 'dailyRateMin', 'dailyRateMax', 'startDate', 'title'])]
+#[ApiFilter(OrderFilter::class, properties: ['createdAt', 'updatedAt', 'score', 'dailyRate', 'startDate', 'title'])]
 class Opportunity
 {
     #[ORM\Id]
@@ -99,23 +95,15 @@ class Opportunity
     #[Groups(['opportunity:read', 'opportunity:write'])]
     private OpportunitySource $source = OpportunitySource::MANUAL;
 
-    #[ORM\Column(length: 512, nullable: true)]
-    #[Groups(['opportunity:read', 'opportunity:write'])]
-    #[Assert\Length(max: 512)]
-    #[Assert\Url]
-    private ?string $url = null;
-
     #[ORM\Column(type: Types::STRING, length: 32, enumType: OpportunityStatus::class)]
     #[Groups(['opportunity:read', 'opportunity:write'])]
     private OpportunityStatus $status = OpportunityStatus::NEW;
 
+    /** TJM unique de la mission (€ / jour). */
     #[ORM\Column(nullable: true)]
     #[Groups(['opportunity:read', 'opportunity:write'])]
-    private ?int $dailyRateMin = null;
-
-    #[ORM\Column(nullable: true)]
-    #[Groups(['opportunity:read', 'opportunity:write'])]
-    private ?int $dailyRateMax = null;
+    #[Assert\PositiveOrZero(message: 'Le TJM doit être positif ou nul.')]
+    private ?int $dailyRate = null;
 
     #[ORM\Column]
     #[Groups(['opportunity:read', 'opportunity:write'])]
@@ -162,6 +150,16 @@ class Opportunity
     #[ApiProperty(writable: false)]
     private \DateTimeImmutable $updatedAt;
 
+    /**
+     * Date du dernier changement effectif de statut (initialisée à la
+     * création). Une modification d'un autre champ ne la change pas.
+     * Référence de la règle d'alerte opportunity_no_answer.
+     */
+    #[ORM\Column]
+    #[Groups(['opportunity:read'])]
+    #[ApiProperty(writable: false)]
+    private \DateTimeImmutable $statusChangedAt;
+
     /** @var Collection<int, Interaction> */
     #[ORM\OneToMany(targetEntity: Interaction::class, mappedBy: 'opportunity')]
     #[Groups(['opportunity:read'])]
@@ -172,18 +170,19 @@ class Opportunity
     #[Groups(['opportunity:read'])]
     private Collection $followUps;
 
-    /** @var Collection<int, Task> */
-    #[ORM\OneToMany(targetEntity: Task::class, mappedBy: 'opportunity')]
+    /** @var Collection<int, Alert> */
+    #[ORM\OneToMany(targetEntity: Alert::class, mappedBy: 'opportunity')]
     #[Groups(['opportunity:read'])]
-    private Collection $tasks;
+    private Collection $alerts;
 
     public function __construct()
     {
         $this->createdAt = new \DateTimeImmutable();
         $this->updatedAt = new \DateTimeImmutable();
+        $this->statusChangedAt = $this->createdAt;
         $this->interactions = new ArrayCollection();
         $this->followUps = new ArrayCollection();
-        $this->tasks = new ArrayCollection();
+        $this->alerts = new ArrayCollection();
     }
 
     #[ORM\PreUpdate]
@@ -269,18 +268,6 @@ class Opportunity
         return $this;
     }
 
-    public function getUrl(): ?string
-    {
-        return $this->url;
-    }
-
-    public function setUrl(?string $url): static
-    {
-        $this->url = $url;
-
-        return $this;
-    }
-
     public function getStatus(): OpportunityStatus
     {
         return $this->status;
@@ -288,31 +275,23 @@ class Opportunity
 
     public function setStatus(OpportunityStatus $status): static
     {
+        if ($status !== $this->status) {
+            $this->statusChangedAt = new \DateTimeImmutable();
+        }
+
         $this->status = $status;
 
         return $this;
     }
 
-    public function getDailyRateMin(): ?int
+    public function getDailyRate(): ?int
     {
-        return $this->dailyRateMin;
+        return $this->dailyRate;
     }
 
-    public function setDailyRateMin(?int $dailyRateMin): static
+    public function setDailyRate(?int $dailyRate): static
     {
-        $this->dailyRateMin = $dailyRateMin;
-
-        return $this;
-    }
-
-    public function getDailyRateMax(): ?int
-    {
-        return $this->dailyRateMax;
-    }
-
-    public function setDailyRateMax(?int $dailyRateMax): static
-    {
-        $this->dailyRateMax = $dailyRateMax;
+        $this->dailyRate = $dailyRate;
 
         return $this;
     }
@@ -443,6 +422,18 @@ class Opportunity
         return $this;
     }
 
+    public function getStatusChangedAt(): \DateTimeImmutable
+    {
+        return $this->statusChangedAt;
+    }
+
+    public function setStatusChangedAt(\DateTimeImmutable $statusChangedAt): static
+    {
+        $this->statusChangedAt = $statusChangedAt;
+
+        return $this;
+    }
+
     /**
      * @return Collection<int, Interaction>
      */
@@ -502,28 +493,28 @@ class Opportunity
     }
 
     /**
-     * @return Collection<int, Task>
+     * @return Collection<int, Alert>
      */
-    public function getTasks(): Collection
+    public function getAlerts(): Collection
     {
-        return $this->tasks;
+        return $this->alerts;
     }
 
-    public function addTask(Task $task): static
+    public function addAlert(Alert $alert): static
     {
-        if (!$this->tasks->contains($task)) {
-            $this->tasks->add($task);
-            $task->setOpportunity($this);
+        if (!$this->alerts->contains($alert)) {
+            $this->alerts->add($alert);
+            $alert->setOpportunity($this);
         }
 
         return $this;
     }
 
-    public function removeTask(Task $task): static
+    public function removeAlert(Alert $alert): static
     {
-        if ($this->tasks->removeElement($task)) {
-            if ($task->getOpportunity() === $this) {
-                $task->setOpportunity(null);
+        if ($this->alerts->removeElement($alert)) {
+            if ($alert->getOpportunity() === $this) {
+                $alert->setOpportunity(null);
             }
         }
 

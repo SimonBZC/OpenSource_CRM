@@ -23,10 +23,8 @@ final class RawOpportunityDataTest extends TestCase
 
         self::assertSame('', $data->title);
         self::assertNull($data->description);
-        self::assertNull($data->url);
         self::assertNull($data->companyName);
-        self::assertNull($data->dailyRateMin);
-        self::assertNull($data->dailyRateMax);
+        self::assertNull($data->dailyRate);
         self::assertFalse($data->remote);
         self::assertNull($data->location);
         self::assertSame([], $data->technologies);
@@ -38,10 +36,8 @@ final class RawOpportunityDataTest extends TestCase
         $data = RawOpportunityData::fromArray([
             'title' => 'Développeur Symfony',
             'description' => 'Mission longue durée',
-            'url' => 'https://example.com/job/42',
             'company_name' => 'Acme Corp',
-            'daily_rate_min' => 400,
-            'daily_rate_max' => 600,
+            'daily_rate' => 600,
             'remote' => true,
             'location' => 'Paris',
             'technologies' => ['PHP', 'Symfony'],
@@ -50,10 +46,8 @@ final class RawOpportunityDataTest extends TestCase
 
         self::assertSame('Développeur Symfony', $data->title);
         self::assertSame('Mission longue durée', $data->description);
-        self::assertSame('https://example.com/job/42', $data->url);
         self::assertSame('Acme Corp', $data->companyName);
-        self::assertSame(400, $data->dailyRateMin);
-        self::assertSame(600, $data->dailyRateMax);
+        self::assertSame(600, $data->dailyRate);
         self::assertTrue($data->remote);
         self::assertSame('Paris', $data->location);
         self::assertSame(['PHP', 'Symfony'], $data->technologies);
@@ -66,14 +60,12 @@ final class RawOpportunityDataTest extends TestCase
         $data = RawOpportunityData::fromArray([
             'title' => 'Développeur Symfony',
             'companyName' => 'Acme Corp',
-            'dailyRateMin' => 400,
-            'dailyRateMax' => 600,
+            'dailyRate' => 600,
             'postedAt' => '2026-08-01',
         ]);
 
         self::assertSame('Acme Corp', $data->companyName);
-        self::assertSame(400, $data->dailyRateMin);
-        self::assertSame(600, $data->dailyRateMax);
+        self::assertSame(600, $data->dailyRate);
         self::assertInstanceOf(\DateTimeImmutable::class, $data->postedAt);
     }
 
@@ -82,14 +74,14 @@ final class RawOpportunityDataTest extends TestCase
         $data = RawOpportunityData::fromArray([
             'company_name' => 'Snake Corp',
             'companyName' => 'Camel Corp',
-            'daily_rate_min' => 100,
-            'dailyRateMin' => 200,
+            'daily_rate' => 100,
+            'dailyRate' => 200,
             'posted_at' => '2026-01-01',
             'postedAt' => '2026-02-02',
         ]);
 
         self::assertSame('Snake Corp', $data->companyName);
-        self::assertSame(100, $data->dailyRateMin);
+        self::assertSame(100, $data->dailyRate);
         self::assertSame('2026-01-01', $data->postedAt?->format('Y-m-d'));
     }
 
@@ -104,13 +96,11 @@ final class RawOpportunityDataTest extends TestCase
     {
         $data = RawOpportunityData::fromArray([
             'description' => '',
-            'url' => '',
             'company_name' => '',
             'location' => '',
         ]);
 
         self::assertNull($data->description);
-        self::assertNull($data->url);
         self::assertNull($data->companyName);
         self::assertNull($data->location);
     }
@@ -119,11 +109,11 @@ final class RawOpportunityDataTest extends TestCase
     {
         $data = RawOpportunityData::fromArray([
             'description' => 42,
-            'url' => ['not', 'a', 'string'],
+            'location' => ['not', 'a', 'string'],
         ]);
 
         self::assertNull($data->description);
-        self::assertNull($data->url);
+        self::assertNull($data->location);
     }
 
     /**
@@ -141,23 +131,23 @@ final class RawOpportunityDataTest extends TestCase
     #[DataProvider('dailyRateProvider')]
     public function testFromArrayCoercesDailyRateToInt(mixed $rawValue, int $expected): void
     {
-        $data = RawOpportunityData::fromArray(['daily_rate_min' => $rawValue]);
+        $data = RawOpportunityData::fromArray(['daily_rate' => $rawValue]);
 
-        self::assertSame($expected, $data->dailyRateMin);
+        self::assertSame($expected, $data->dailyRate);
     }
 
     public function testFromArrayWithNonNumericStringDailyRateReturnsNull(): void
     {
-        $data = RawOpportunityData::fromArray(['daily_rate_min' => 'not-a-number']);
+        $data = RawOpportunityData::fromArray(['daily_rate' => 'not-a-number']);
 
-        self::assertNull($data->dailyRateMin);
+        self::assertNull($data->dailyRate);
     }
 
     public function testFromArrayWithEmptyStringDailyRateReturnsNull(): void
     {
-        $data = RawOpportunityData::fromArray(['daily_rate_min' => '']);
+        $data = RawOpportunityData::fromArray(['daily_rate' => '']);
 
-        self::assertNull($data->dailyRateMin);
+        self::assertNull($data->dailyRate);
     }
 
     /**

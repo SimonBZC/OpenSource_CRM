@@ -4,10 +4,10 @@
 # Put parameters here that don't need to change on each machine where the app is deployed
 # https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
 parameters:
-    # Phase 8 — App\Automation\Rule\CreateTaskForHighScoreOpportunityRule.
+    # Phase 8 — App\Automation\Rule\CreateAlertForHighScoreOpportunityRule.
     # Seuil volontairement plus sélectif que le seuil d'affichage "fort
     # potentiel" du dashboard (score >= 70) pour éviter de spammer
-    # l'utilisateur de tâches automatiques. Ajustable sans toucher au code.
+    # l'utilisateur d'alertes automatiques. Ajustable sans toucher au code.
     app.automation.high_score_threshold: 80
 
 services:
@@ -41,9 +41,15 @@ services:
     App\Controller\OpportunityAnalysisController:
         public: true
 
+    App\Controller\MessageTemplateRenderController:
+        public: true
+
+    App\Controller\AlertRuleEvaluationController:
+        public: true
+
     # Phase 8 — seuil de score injecté en paramètre de conteneur (voir
     # parameters: ci-dessus) plutôt que codé en dur dans la règle.
-    App\Automation\Rule\CreateTaskForHighScoreOpportunityRule:
+    App\Automation\Rule\CreateAlertForHighScoreOpportunityRule:
         arguments:
             $highScoreThreshold: '%app.automation.high_score_threshold%'
 
