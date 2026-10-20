@@ -98,6 +98,15 @@ context:
 - Couverture de la matrice : les lignes 5 (API doublon) et `/api/alerts` sont couvertes par PHPUnit (`CompanyUniqueNameProcessorTest`) et par curl sur :18081. Les lignes UI 1 à 4 et 6 ont été vérifiées dans un navigateur (Next temporaire sur :3001 pointé sur :18081) : le frontend n'a pas d'infrastructure de test automatisé.
 - Effet de bord : le code étant partagé, l'app réelle (:18080) attend la table `alert` tant que Simon n'a pas joué la migration.
 
+- Évolutions livrées hors spec, après le statut `done`, sans passer par bmad-build (commits 4f88d4d..7fa39fd) et relues ensuite avec bmad-code-review. Elles sont reportées dans le PRD (FR-4, FR-5, FR-9 à FR-11, §5 Exigences transverses) :
+  - les actions de la colonne Actions sont des icônes ;
+  - « Nouvelle relance » pré-remplit le titre, le statut et la date à 14h, puis revient sur `/contacts` ;
+  - les champs datetime convertissent heure locale ↔ UTC ;
+  - les pages Entreprises sont retirées du frontend ;
+  - une relance peut être supprimée depuis la liste ;
+  - l'ordre du menu change et le logo mène au Dashboard.
+  Ces évolutions modifient la matrice I/O figée sur un point : « Actions sans entreprise → seul le contact pré-rempli » reste vrai pour le contact et l'entreprise, mais le titre, la date et le statut de la Relance sont désormais pré-remplis aussi.
+
 ## Spec Change Log
 
 ## Review Triage Log

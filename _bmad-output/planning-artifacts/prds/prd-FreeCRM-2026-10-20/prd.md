@@ -62,7 +62,7 @@ Simon peut créer une nouvelle Entreprise (nom obligatoire, secteur d'activité 
 **Conséquences (testables) :**
 - Quand aucune Entreprise existante n'est choisie et qu'un nom est saisi, un champ « Secteur d'activité » apparaît.
 - À l'enregistrement, l'Entreprise est créée puis le Contact y est rattaché. Si la création du Contact échoue, l'Entreprise n'est pas créée non plus.
-- L'Entreprise créée apparaît dans `/companies`, avec son nom et son secteur.
+- L'Entreprise créée est rattachée au Contact et exposée par l'API (`/api/companies`), avec son nom et son secteur. Elle n'a pas de page dédiée (voir FR-11).
 
 #### FR-3 : Signaler un doublon d'entreprise
 
@@ -77,24 +77,27 @@ Le système signale un Doublon d'entreprise et empêche sa création.
 
 ### 4.2 Colonne Actions dans la liste des contacts
 
-**Description :** la liste `/contacts` gagne une colonne « Actions » en fin de tableau. Chaque ligne y propose de créer une Opportunité ou une Relance pour ce Contact. Réalise UJ-1.
+**Description :** la liste `/contacts` gagne une colonne « Actions » en fin de tableau. Chaque ligne y propose, sous forme d'icônes avec infobulle (mallette pour l'Opportunité, cloche pour la Relance), de créer une Opportunité ou une Relance pour ce Contact. Réalise UJ-1.
 
 #### FR-4 : Créer une opportunité depuis un contact
 
 Simon peut, depuis une ligne de la liste des Contacts, ouvrir la création d'une Opportunité pour ce Contact.
 
 **Conséquences (testables) :**
-- La colonne Actions est la dernière colonne et contient une action « Nouvelle opportunité ».
+- La colonne Actions est la dernière colonne et contient une icône « Nouvelle opportunité » (infobulle et libellé accessible).
 - Le formulaire de création d'Opportunité s'ouvre avec le Contact déjà renseigné, ainsi que son Entreprise s'il en a une.
 - Les autres champs restent vides ; Simon peut modifier les champs pré-remplis.
+- Après création, Simon arrive sur la fiche de l'Opportunité créée.
 
 #### FR-5 : Créer une relance depuis un contact
 
 Simon peut, depuis une ligne de la liste des Contacts, ouvrir la création d'une Relance pour ce Contact.
 
 **Conséquences (testables) :**
-- La colonne Actions contient une action « Nouvelle relance ».
+- La colonne Actions contient une icône « Nouvelle relance » (infobulle et libellé accessible).
 - Le formulaire de création de Relance s'ouvre avec le Contact déjà renseigné, ainsi que son Entreprise s'il en a une.
+- Il est aussi pré-rempli avec le titre « Relance commercial », le statut « À faire » et la date prévue à 14h00 le jour même, ou le lendemain à 14h00 s'il est déjà 14h00 ou plus. Tous ces champs restent modifiables.
+- Après création, Simon revient sur la liste des Contacts. Une Relance créée depuis la page Relances ouvre toujours sa fiche.
 
 ### 4.3 Renommer « Tâches » en « Alertes »
 
@@ -120,7 +123,39 @@ Simon peut, depuis une ligne de la liste des Contacts, ouvrir la création d'une
 - Une migration Doctrine renomme la table et les colonnes, et conserve toutes les Tâches existantes (nombre identique avant et après, mêmes valeurs).
 - C'est Simon qui lance la migration sur sa vraie base (règle de `AGENTS.md`) ; elle est d'abord validée sur la stack de test.
 
-## 5. Hors périmètre
+### 4.4 Relances, navigation et entreprises
+
+**Description :** ajustements livrés après la première itération, à la demande de Simon.
+
+#### FR-9 : Supprimer une relance depuis la liste
+
+Simon peut supprimer une Relance directement depuis la liste `/follow-ups`, quel que soit son statut.
+
+**Conséquences (testables) :**
+- Chaque ligne de la liste propose « Supprimer » ; une confirmation est demandée avant la suppression définitive.
+- La suppression reste aussi possible depuis la fiche de la Relance.
+
+#### FR-10 : Ordre du menu
+
+**Conséquences (testables) :**
+- Le menu affiche, dans cet ordre : Dashboard, Contacts, Relances, Opportunités, Alertes, Paramètres.
+- Le logo « FreeCRM » mène au Dashboard.
+
+#### FR-11 : Pas de page Entreprises
+
+Les Entreprises n'ont plus de page dédiée dans l'interface ; elles se créent depuis le formulaire Contact (FR-2). L'API `/api/companies` et la règle d'unicité (FR-3) sont conservées.
+
+**Conséquences (testables) :**
+- Le menu n'affiche plus « Entreprises » ; `/companies`, `/companies/new` et `/companies/{id}` répondent 404.
+- Le nom de l'Entreprise reste affiché, sans lien, sur la fiche Contact et dans la liste des Relances.
+
+**Notes :** `[NOTE FOR PM]` Il n'y a plus d'écran pour renommer ou supprimer une Entreprise, ni pour modifier son site, son secteur ou ses notes. Avec la règle d'unicité, une Entreprise mal nommée ne peut plus être corrigée ni recréée. Ce point est consigné dans `deferred-work.md` et doit être tranché par Simon.
+
+## 5. Exigences transverses
+
+- **Dates et heures :** l'heure saisie dans un formulaire (Relance, Alerte) est celle affichée partout, dans l'heure locale du navigateur. L'API reçoit et renvoie de l'UTC. Les dates saisies avant cette correction restent décalées de +1/+2 h, et leur recalage est consigné dans `deferred-work.md`.
+
+## 6. Hors périmètre
 
 - La notion de client distincte du Contact (itération future).
 - La vérification d'entreprise en direct à la saisie : le bouton suffit en v1, le direct suit.
@@ -128,10 +163,13 @@ Simon peut, depuis une ligne de la liste des Contacts, ouvrir la création d'une
 - Toute autre action dans la colonne Actions (édition, suppression, interaction…).
 - La redirection de `/tasks` vers `/alerts` : application locale, sans liens externes.
 
-## 6. Critère de succès
+## 7. Critère de succès
 
 Simon crée un contact avec une nouvelle entreprise, puis une relance pour ce contact, sans quitter la liste ni le formulaire et sans ressaisir le contact. Aucune entreprise en double n'est créée.
 
-## 7. Questions ouvertes
+## 8. Questions ouvertes
 
-Aucune. Simon a confirmé que la base ne contient aucune Entreprise en doublon : la règle d'unicité peut s'appliquer sans nettoyage préalable.
+1. Faut-il un moyen de corriger ou supprimer une Entreprise maintenant que sa page est retirée (FR-11) ? Par exemple, une édition légère depuis la fiche Contact. À trancher par Simon.
+2. Faut-il recaler les dates de Relances et d'Alertes saisies avant la correction UTC ? Seules les lignes saisies via le formulaire sont concernées, pas celles créées par l'automatisation. À trancher par Simon.
+
+Pour mémoire : Simon a confirmé que la base ne contient aucune Entreprise en doublon. La règle d'unicité s'applique donc sans nettoyage préalable.
