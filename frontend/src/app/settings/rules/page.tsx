@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { FieldError } from "@/components/ui/FieldError";
+import { useNotify } from "@/components/ui/Toaster";
 import { ApiValidationError, toDisplayMessage } from "@/lib/api/errors";
 import { alertRulesApi } from "@/lib/api/resources";
 import { ALERT_PRIORITIES, type AlertPriority, type AlertRule } from "@/lib/api/types";
@@ -18,8 +19,6 @@ interface RuleDraft {
 /** État d'enregistrement propre à chaque ligne. */
 interface RowState {
   saving: boolean;
-  saved: boolean;
-  error: string | null;
   validationError: ApiValidationError | null;
   /** Erreur de saisie détectée avant l'envoi (délai vide ou non entier). */
   delayError: string | null;
@@ -27,8 +26,6 @@ interface RowState {
 
 const EMPTY_ROW_STATE: RowState = {
   saving: false,
-  saved: false,
-  error: null,
   validationError: null,
   delayError: null,
 };
@@ -43,6 +40,7 @@ export default function AlertRulesPage() {
   const [rowStates, setRowStates] = useState<Record<number, RowState>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const notify = useNotify();
 
   function reload() {
     setLoading(true);
@@ -65,7 +63,6 @@ export default function AlertRulesPage() {
 
   function updateDraft<K extends keyof RuleDraft>(id: number, field: K, value: RuleDraft[K]) {
     setDrafts((prev) => ({ ...prev, [id]: { ...prev[id], [field]: value } }));
-    setRowStates((prev) => ({ ...prev, [id]: { ...(prev[id] ?? EMPTY_ROW_STATE), saved: false } }));
   }
 
   function setRowState(id: number, patch: Partial<RowState>) {
@@ -81,15 +78,13 @@ export default function AlertRulesPage() {
     // mais un délai vide ou décimal ne serait pas un entier valide.
     if (raw === "" || !/^-?\d+$/.test(raw)) {
       setRowState(rule.id, {
-        saved: false,
-        error: null,
         validationError: null,
         delayError: "Le délai doit être un nombre entier de jours.",
       });
       return;
     }
 
-    setRowState(rule.id, { saving: true, saved: false, error: null, validationError: null, delayError: null });
+    setRowState(rule.id, { saving: true, validationError: null, delayError: null });
     try {
       const updated = await alertRulesApi.update(rule.id, {
         enabled: draft.enabled,
@@ -98,12 +93,14 @@ export default function AlertRulesPage() {
       });
       setRules((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
       setDrafts((prev) => ({ ...prev, [updated.id]: toDraft(updated) }));
-      setRowState(rule.id, { saving: false, saved: true });
+      setRowState(rule.id, { saving: false });
+      notify.success("Règle enregistrée");
     } catch (err) {
       if (err instanceof ApiValidationError) {
         setRowState(rule.id, { saving: false, validationError: err });
       } else {
-        setRowState(rule.id, { saving: false, error: toDisplayMessage(err) });
+        setRowState(rule.id, { saving: false });
+        notify.error(`${alertRuleTypeLabels[rule.type] ?? rule.label} : ${toDisplayMessage(err)}`);
       }
     }
   }
@@ -147,7 +144,7 @@ export default function AlertRulesPage() {
                   <td className="max-w-sm px-4 py-3">
                     <p className="font-medium">{alertRuleTypeLabels[rule.type] ?? rule.label}</p>
                     <p className="mt-0.5 text-xs text-black/50">{alertRuleTypeDescriptions[rule.type]}</p>
-                    <FieldError message={state.error ?? otherViolation ?? undefined} />
+                    <FieldError message={otherViolation ?? undefined} />
                   </td>
                   <td className="px-4 py-3">
                     <input
@@ -197,7 +194,6 @@ export default function AlertRulesPage() {
                       >
                         {state.saving ? "Enregistrement..." : "Enregistrer"}
                       </button>
-                      {state.saved && <span className="text-xs text-green-700">Enregistré</span>}
                     </div>
                   </td>
                 </tr>

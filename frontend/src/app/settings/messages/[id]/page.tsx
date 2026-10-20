@@ -6,6 +6,7 @@ import { use, useCallback, useEffect, useState } from "react";
 import { MessageTemplateForm } from "@/components/settings/MessageTemplateForm";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
+import { useNotify } from "@/components/ui/Toaster";
 import { ApiValidationError, toDisplayMessage } from "@/lib/api/errors";
 import { messageTemplatesApi } from "@/lib/api/resources";
 import type { MessageTemplate, MessageTemplateWritePayload } from "@/lib/api/types";
@@ -13,6 +14,7 @@ import type { MessageTemplate, MessageTemplateWritePayload } from "@/lib/api/typ
 export default function MessageTemplateDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
+  const notify = useNotify();
 
   const [template, setTemplate] = useState<MessageTemplate | null>(null);
   const [values, setValues] = useState<MessageTemplateWritePayload>({});
@@ -52,16 +54,16 @@ export default function MessageTemplateDetailPage({ params }: { params: Promise<
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
-    setError(null);
     setValidationError(null);
     try {
       const updated = await messageTemplatesApi.update(id, values);
       setTemplate(updated);
+      notify.success("Message modifié");
     } catch (err) {
       if (err instanceof ApiValidationError) {
         setValidationError(err);
       } else {
-        setError(toDisplayMessage(err));
+        notify.error(toDisplayMessage(err));
       }
     } finally {
       setSaving(false);
@@ -71,12 +73,12 @@ export default function MessageTemplateDetailPage({ params }: { params: Promise<
   async function handleDelete() {
     if (deleting) return;
     setDeleting(true);
-    setError(null);
     try {
       await messageTemplatesApi.remove(id);
+      notify.success("Message supprimé");
       router.push("/settings/messages");
     } catch (err) {
-      setError(toDisplayMessage(err));
+      notify.error(toDisplayMessage(err));
       setDeleting(false);
       setConfirmOpen(false);
     }
@@ -114,7 +116,6 @@ export default function MessageTemplateDetailPage({ params }: { params: Promise<
       </div>
 
       <form onSubmit={handleSave} className="mt-6 max-w-5xl space-y-4">
-        <ErrorBanner message={error} />
         <div className="rounded-lg border border-black/10 bg-white p-6">
           <MessageTemplateForm values={values} onChange={onChange} validationError={validationError} />
         </div>

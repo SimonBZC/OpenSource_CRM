@@ -4,12 +4,14 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AlertFormFields } from "@/components/alerts/AlertFormFields";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
+import { useNotify } from "@/components/ui/Toaster";
 import { ApiValidationError, toDisplayMessage } from "@/lib/api/errors";
 import { contactsApi, opportunitiesApi, alertsApi } from "@/lib/api/resources";
 import type { Contact, Opportunity, AlertWritePayload } from "@/lib/api/types";
 
 export default function NewAlertPage() {
   const router = useRouter();
+  const notify = useNotify();
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [values, setValues] = useState<AlertWritePayload>({
@@ -39,16 +41,16 @@ export default function NewAlertPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
-    setError(null);
     setValidationError(null);
     try {
       const created = await alertsApi.create(values);
+      notify.success("Alerte créée");
       router.push(`/alerts/${created.id}`);
     } catch (err) {
       if (err instanceof ApiValidationError) {
         setValidationError(err);
       } else {
-        setError(toDisplayMessage(err));
+        notify.error(toDisplayMessage(err));
       }
     } finally {
       setSubmitting(false);

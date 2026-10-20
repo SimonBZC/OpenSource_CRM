@@ -40,3 +40,6 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-regles-alertes-configurables.md`
   summary: Décider avec Simon si une alerte de règle se clôt d'elle-même quand sa condition disparaît, et si les relances liées à une opportunité du contact comptent pour la règle « Contact sans relance récente ».
   evidence: Non spécifié ; aujourd'hui l'alerte reste ouverte et seules les relances liées directement au contact comptent.
+- source_spec: `_bmad-output/implementation-artifacts/spec-notifications-unifiees.md`
+  summary: Décider si l'analyse IA d'une opportunité passe par les notifications (succès vert, erreurs en rouge) ou garde son bandeau.
+  evidence: `app/opportunities/[id]/page.tsx` (`handleAnalyze`) écrit l'opportunité mais garde `analysisError` en bandeau et n'émet aucune notification de succès.

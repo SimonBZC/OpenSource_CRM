@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/Badge";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { IconButton } from "@/components/ui/IconButton";
+import { useNotify } from "@/components/ui/Toaster";
 import { Pagination } from "@/components/ui/Pagination";
 import { toDisplayMessage } from "@/lib/api/errors";
 import { idFromIri } from "@/lib/api/iri";
@@ -37,7 +38,7 @@ export default function FollowUpsPage() {
   const [quickFilter, setQuickFilter] = useState<QuickFilter>("all");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
+  const notify = useNotify();
   // Relance visée par la popup de suppression (null = popup fermée).
   const [pendingDelete, setPendingDelete] = useState<FollowUp | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -116,7 +117,6 @@ export default function FollowUpsPage() {
   }, [page, status, quickFilter]);
 
   async function markDone(followUp: FollowUp) {
-    setActionError(null);
     try {
       // completedAt n'est pas rempli par le backend (vérifié par curl) : on
       // l'envoie nous-mêmes avec la date/heure courante.
@@ -124,21 +124,22 @@ export default function FollowUpsPage() {
         status: "done",
         completedAt: new Date().toISOString(),
       });
+      notify.success("Relance marquée comme faite");
       reload();
     } catch (err) {
-      setActionError(toDisplayMessage(err));
+      notify.error(toDisplayMessage(err));
     }
   }
 
   async function deleteFollowUp() {
     if (!pendingDelete || deleting) return;
     setDeleting(true);
-    setActionError(null);
     try {
       await followUpsApi.remove(pendingDelete.id);
+      notify.success("Relance supprimée");
       reload();
     } catch (err) {
-      setActionError(toDisplayMessage(err));
+      notify.error(toDisplayMessage(err));
     } finally {
       setDeleting(false);
       setPendingDelete(null);
@@ -218,7 +219,6 @@ export default function FollowUpsPage() {
 
       <div className="mt-4 space-y-3">
         <ErrorBanner message={error} />
-        <ErrorBanner message={actionError} />
       </div>
 
       <div className="mt-4 overflow-hidden rounded-lg border border-black/10 bg-white">

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
+import { useNotify } from "@/components/ui/Toaster";
 import { toDisplayMessage } from "@/lib/api/errors";
 import { messageTemplatesApi, renderMessageTemplate } from "@/lib/api/resources";
 import type { MessageTemplate, RenderedMessage } from "@/lib/api/types";
@@ -28,8 +29,6 @@ export function MessageDialog({ open, contactId, onClose }: MessageDialogProps) 
   return <MessageDialogContent contactId={contactId} onClose={onClose} />;
 }
 
-type CopyState = "idle" | "copied" | "error";
-
 function copyFromTextarea(textarea: HTMLTextAreaElement | null): boolean {
   if (!textarea) return false;
   textarea.focus();
@@ -49,13 +48,15 @@ function MessageDialogContent({ contactId, onClose }: Omit<MessageDialogProps, "
   // l'utilisateur change de message avant la fin d'une requête.
   const renderRequest = useRef(0);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
+  const notify = useNotify();
 
   const [templates, setTemplates] = useState<MessageTemplate[] | null>(null);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [rendered, setRendered] = useState<RenderedMessage | null>(null);
   const [rendering, setRendering] = useState(false);
+  // Erreur de chargement de la liste des messages (le rendu et la copie
+  // signalent leurs erreurs par notification).
   const [error, setError] = useState<string | null>(null);
-  const [copyState, setCopyState] = useState<CopyState>("idle");
 
   useEffect(() => {
     closeRef.current?.focus();
@@ -79,8 +80,6 @@ function MessageDialogContent({ contactId, onClose }: Omit<MessageDialogProps, "
   async function selectTemplate(id: number | null) {
     setSelectedId(id);
     setRendered(null);
-    setCopyState("idle");
-    setError(null);
     // Toute sélection, y compris le retour à « Choisir un message… », périme
     // le rendu éventuellement en cours.
     const request = ++renderRequest.current;
@@ -94,7 +93,7 @@ function MessageDialogContent({ contactId, onClose }: Omit<MessageDialogProps, "
       const result = await renderMessageTemplate(id, contactId);
       if (request === renderRequest.current) setRendered(result);
     } catch (err) {
-      if (request === renderRequest.current) setError(toDisplayMessage(err));
+      if (request === renderRequest.current) notify.error(toDisplayMessage(err));
     } finally {
       if (request === renderRequest.current) setRendering(false);
     }
@@ -105,11 +104,15 @@ function MessageDialogContent({ contactId, onClose }: Omit<MessageDialogProps, "
     try {
       if (!navigator.clipboard) throw new Error("Presse-papiers indisponible");
       await navigator.clipboard.writeText(rendered.body);
-      setCopyState("copied");
+      notify.success("Message copié");
     } catch {
       // Repli quand l'API asynchrone est refusée (permission, contexte non
       // sécurisé) : copie de la sélection du textarea en lecture seule.
-      setCopyState(copyFromTextarea(bodyRef.current) ? "copied" : "error");
+      if (copyFromTextarea(bodyRef.current)) {
+        notify.success("Message copié");
+      } else {
+        notify.error("Copie impossible : sélectionnez le texte et copiez-le.");
+      }
     }
   }
 
@@ -194,10 +197,6 @@ function MessageDialogContent({ contactId, onClose }: Omit<MessageDialogProps, "
         </div>
 
         <div className="mt-6 flex items-center justify-end gap-2">
-          {copyState === "copied" && <span className="text-sm text-green-700">Copié</span>}
-          {copyState === "error" && (
-            <span className="text-sm text-red-700">Copie impossible : sélectionnez le texte et copiez-le.</span>
-          )}
           <button
             ref={closeRef}
             type="button"

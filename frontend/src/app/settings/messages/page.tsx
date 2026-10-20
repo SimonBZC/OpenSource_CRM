@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { IconButton } from "@/components/ui/IconButton";
+import { useNotify } from "@/components/ui/Toaster";
 import { toDisplayMessage } from "@/lib/api/errors";
 import { messageTemplatesApi } from "@/lib/api/resources";
 import type { MessageTemplate } from "@/lib/api/types";
@@ -13,7 +14,7 @@ export default function MessageTemplatesPage() {
   const [items, setItems] = useState<MessageTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
+  const notify = useNotify();
   // Message visé par la popup de suppression (null = popup fermée).
   const [pendingDelete, setPendingDelete] = useState<MessageTemplate | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -36,12 +37,12 @@ export default function MessageTemplatesPage() {
   async function deleteTemplate() {
     if (!pendingDelete || deleting) return;
     setDeleting(true);
-    setActionError(null);
     try {
       await messageTemplatesApi.remove(pendingDelete.id);
+      notify.success("Message supprimé");
       reload();
     } catch (err) {
-      setActionError(toDisplayMessage(err));
+      notify.error(toDisplayMessage(err));
     } finally {
       setDeleting(false);
       setPendingDelete(null);
@@ -65,7 +66,6 @@ export default function MessageTemplatesPage() {
 
       <div className="mt-4 space-y-3">
         <ErrorBanner message={error} />
-        <ErrorBanner message={actionError} />
       </div>
 
       <div className="mt-4 overflow-hidden rounded-lg border border-black/10 bg-white">

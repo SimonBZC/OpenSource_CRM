@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { OpportunityFormFields } from "@/components/opportunities/OpportunityFormFields";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
+import { useNotify } from "@/components/ui/Toaster";
 import { ApiValidationError, toDisplayMessage } from "@/lib/api/errors";
 import { companyIri, contactIri } from "@/lib/api/iri";
 import { companiesApi, contactsApi, opportunitiesApi } from "@/lib/api/resources";
@@ -25,6 +26,7 @@ export default function NewOpportunityPage() {
 
 function NewOpportunityPageContent() {
   const router = useRouter();
+  const notify = useNotify();
   const searchParams = useSearchParams();
   const prefilledContactId = readIdParam(searchParams, "contact");
   const prefilledCompanyId = readIdParam(searchParams, "company");
@@ -69,16 +71,16 @@ function NewOpportunityPageContent() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
-    setError(null);
     setValidationError(null);
     try {
       const created = await opportunitiesApi.create(values);
+      notify.success("Opportunité créée");
       router.push(`/opportunities/${created.id}`);
     } catch (err) {
       if (err instanceof ApiValidationError) {
         setValidationError(err);
       } else {
-        setError(toDisplayMessage(err));
+        notify.error(toDisplayMessage(err));
       }
     } finally {
       setSubmitting(false);

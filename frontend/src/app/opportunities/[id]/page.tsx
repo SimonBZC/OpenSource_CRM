@@ -8,6 +8,7 @@ import { OpportunityFormFields } from "@/components/opportunities/OpportunityFor
 import { Badge } from "@/components/ui/Badge";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
+import { useNotify } from "@/components/ui/Toaster";
 import { ApiError, ApiValidationError, toDisplayMessage } from "@/lib/api/errors";
 import { analyzeOpportunity, companiesApi, contactsApi, opportunitiesApi } from "@/lib/api/resources";
 import type {
@@ -27,6 +28,7 @@ export default function OpportunityDetailPage({
 }) {
   const { id } = use(params);
   const router = useRouter();
+  const notify = useNotify();
 
   const [opportunity, setOpportunity] = useState<Opportunity | null>(null);
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -91,16 +93,16 @@ export default function OpportunityDetailPage({
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
-    setError(null);
     setValidationError(null);
     try {
       const updated = await opportunitiesApi.update(id, values);
       setOpportunity(updated);
+      notify.success("Opportunité modifiée");
     } catch (err) {
       if (err instanceof ApiValidationError) {
         setValidationError(err);
       } else {
-        setError(toDisplayMessage(err));
+        notify.error(toDisplayMessage(err));
       }
     } finally {
       setSaving(false);
@@ -110,12 +112,12 @@ export default function OpportunityDetailPage({
   async function handleDelete() {
     if (deleting) return;
     setDeleting(true);
-    setError(null);
     try {
       await opportunitiesApi.remove(id);
+      notify.success("Opportunité supprimée");
       router.push("/opportunities");
     } catch (err) {
-      setError(toDisplayMessage(err));
+      notify.error(toDisplayMessage(err));
       setDeleting(false);
       setConfirmOpen(false);
     }
@@ -208,10 +210,7 @@ export default function OpportunityDetailPage({
       </div>
 
       <div className="mt-4">
-        <ErrorBanner message={error} />
-        <div className="mt-2">
-          <ErrorBanner message={analysisError} />
-        </div>
+        <ErrorBanner message={analysisError} />
       </div>
 
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">

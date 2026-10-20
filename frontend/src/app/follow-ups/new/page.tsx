@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { FollowUpFormFields } from "@/components/follow-ups/FollowUpFormFields";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
+import { useNotify } from "@/components/ui/Toaster";
 import { ApiValidationError, toDisplayMessage } from "@/lib/api/errors";
 import { companyIri, contactIri } from "@/lib/api/iri";
 import { companiesApi, contactsApi, followUpsApi, opportunitiesApi } from "@/lib/api/resources";
@@ -30,6 +31,7 @@ export default function NewFollowUpPage() {
 
 function NewFollowUpPageContent() {
   const router = useRouter();
+  const notify = useNotify();
   const searchParams = useSearchParams();
   const prefilledContactId = readIdParam(searchParams, "contact");
   const prefilledCompanyId = readIdParam(searchParams, "company");
@@ -80,17 +82,17 @@ function NewFollowUpPageContent() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
-    setError(null);
     setValidationError(null);
     try {
       const created = await followUpsApi.create(values);
+      notify.success("Relance créée");
       // Depuis la colonne Actions de la liste des contacts : retour à cette liste.
       router.push(prefilledContactId !== null ? "/contacts" : `/follow-ups/${created.id}`);
     } catch (err) {
       if (err instanceof ApiValidationError) {
         setValidationError(err);
       } else {
-        setError(toDisplayMessage(err));
+        notify.error(toDisplayMessage(err));
       }
     } finally {
       setSubmitting(false);

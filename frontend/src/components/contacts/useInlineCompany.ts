@@ -42,7 +42,7 @@ export type InlineCompanyResult =
 /**
  * État et actions du bloc « Ou créer une entreprise » du formulaire Contact
  * (FR-1, FR-2, FR-3). Les erreurs non liées à la validation (réseau, 5xx)
- * sont propagées à l'appelant, qui les affiche dans son bandeau d'erreur.
+ * sont propagées à l'appelant, qui les affiche en notification rouge.
  */
 export function useInlineCompany() {
   const [name, setNameState] = useState("");
@@ -120,7 +120,9 @@ export function useInlineCompany() {
    * Enregistre le contact (création ou mise à jour via `save`) en créant au
    * préalable l'entreprise saisie, si aucune entreprise existante n'est
    * choisie. Si l'enregistrement du contact échoue, l'entreprise créée est
-   * supprimée (compensation, FR-2) et l'erreur du contact est propagée.
+   * supprimée (compensation, FR-2) et l'erreur du contact est propagée ; si
+   * cette suppression échoue, le message de compensation est propagé à la
+   * place et l'appelant l'affiche en notification rouge.
    *
    * Retourne null si l'entreprise n'a pas pu être créée (doublon, nom
    * invalide) : le message est alors affiché sous le champ.

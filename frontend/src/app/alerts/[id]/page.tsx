@@ -7,6 +7,7 @@ import { AlertFormFields } from "@/components/alerts/AlertFormFields";
 import { Badge } from "@/components/ui/Badge";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
+import { useNotify } from "@/components/ui/Toaster";
 import { ApiValidationError, toDisplayMessage } from "@/lib/api/errors";
 import { contactsApi, opportunitiesApi, alertsApi } from "@/lib/api/resources";
 import type { Contact, Opportunity, Alert, AlertWritePayload } from "@/lib/api/types";
@@ -16,6 +17,7 @@ import { alertStatusBadgeClasses, alertStatusLabels } from "@/lib/labels";
 export default function AlertDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
+  const notify = useNotify();
 
   const [alert, setAlert] = useState<Alert | null>(null);
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -69,16 +71,16 @@ export default function AlertDetailPage({ params }: { params: Promise<{ id: stri
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
-    setError(null);
     setValidationError(null);
     try {
       const updated = await alertsApi.update(id, values);
       setAlert(updated);
+      notify.success("Alerte modifiée");
     } catch (err) {
       if (err instanceof ApiValidationError) {
         setValidationError(err);
       } else {
-        setError(toDisplayMessage(err));
+        notify.error(toDisplayMessage(err));
       }
     } finally {
       setSaving(false);
@@ -88,12 +90,12 @@ export default function AlertDetailPage({ params }: { params: Promise<{ id: stri
   async function handleDelete() {
     if (deleting) return;
     setDeleting(true);
-    setError(null);
     try {
       await alertsApi.remove(id);
+      notify.success("Alerte supprimée");
       router.push("/alerts");
     } catch (err) {
-      setError(toDisplayMessage(err));
+      notify.error(toDisplayMessage(err));
       setDeleting(false);
       setConfirmOpen(false);
     }
@@ -134,10 +136,6 @@ export default function AlertDetailPage({ params }: { params: Promise<{ id: stri
         >
           {deleting ? "Suppression..." : "Supprimer"}
         </button>
-      </div>
-
-      <div className="mt-4">
-        <ErrorBanner message={error} />
       </div>
 
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">

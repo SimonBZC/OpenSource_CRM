@@ -5,12 +5,14 @@ import { useEffect, useState } from "react";
 import { ContactFormFields } from "@/components/contacts/ContactFormFields";
 import { useInlineCompany } from "@/components/contacts/useInlineCompany";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
+import { useNotify } from "@/components/ui/Toaster";
 import { ApiValidationError, toDisplayMessage } from "@/lib/api/errors";
 import { companiesApi, contactsApi } from "@/lib/api/resources";
 import type { Company, ContactWritePayload } from "@/lib/api/types";
 
 export default function NewContactPage() {
   const router = useRouter();
+  const notify = useNotify();
   const [companies, setCompanies] = useState<Company[]>([]);
   const [values, setValues] = useState<ContactWritePayload>({
     lastName: "",
@@ -38,17 +40,17 @@ export default function NewContactPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
-    setError(null);
     setValidationError(null);
     try {
       const result = await inlineCompany.saveContact(values, (payload) => contactsApi.create(payload));
       if (!result) return;
+      notify.success("Contact créé");
       router.push(`/contacts/${result.saved.id}`);
     } catch (err) {
       if (err instanceof ApiValidationError) {
         setValidationError(err);
       } else {
-        setError(toDisplayMessage(err));
+        notify.error(toDisplayMessage(err));
       }
     } finally {
       setSubmitting(false);
@@ -68,7 +70,7 @@ export default function NewContactPage() {
             validationError={validationError}
             companies={companies}
             inlineCompany={inlineCompany}
-            onError={(err) => setError(toDisplayMessage(err))}
+            onError={(err) => notify.error(toDisplayMessage(err))}
           />
         </div>
         <div className="flex gap-3">

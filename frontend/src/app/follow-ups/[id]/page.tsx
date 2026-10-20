@@ -8,6 +8,7 @@ import { MessageDialog } from "@/components/follow-ups/MessageDialog";
 import { Badge } from "@/components/ui/Badge";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
+import { useNotify } from "@/components/ui/Toaster";
 import { ApiValidationError, toDisplayMessage } from "@/lib/api/errors";
 import { idFromIri } from "@/lib/api/iri";
 import { companiesApi, contactsApi, followUpsApi, opportunitiesApi } from "@/lib/api/resources";
@@ -24,6 +25,7 @@ import { followUpStatusBadgeClasses, followUpStatusLabels } from "@/lib/labels";
 export default function FollowUpDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
+  const notify = useNotify();
 
   const [followUp, setFollowUp] = useState<FollowUp | null>(null);
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -84,16 +86,16 @@ export default function FollowUpDetailPage({ params }: { params: Promise<{ id: s
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
-    setError(null);
     setValidationError(null);
     try {
       const updated = await followUpsApi.update(id, values);
       setFollowUp(updated);
+      notify.success("Relance modifiée");
     } catch (err) {
       if (err instanceof ApiValidationError) {
         setValidationError(err);
       } else {
-        setError(toDisplayMessage(err));
+        notify.error(toDisplayMessage(err));
       }
     } finally {
       setSaving(false);
@@ -103,12 +105,12 @@ export default function FollowUpDetailPage({ params }: { params: Promise<{ id: s
   async function handleDelete() {
     if (deleting) return;
     setDeleting(true);
-    setError(null);
     try {
       await followUpsApi.remove(id);
+      notify.success("Relance supprimée");
       router.push("/follow-ups");
     } catch (err) {
-      setError(toDisplayMessage(err));
+      notify.error(toDisplayMessage(err));
       setDeleting(false);
       setConfirmOpen(false);
     }
@@ -161,10 +163,6 @@ export default function FollowUpDetailPage({ params }: { params: Promise<{ id: s
             </button>
           </div>
         )}
-      </div>
-
-      <div className="mt-4">
-        <ErrorBanner message={error} />
       </div>
 
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">

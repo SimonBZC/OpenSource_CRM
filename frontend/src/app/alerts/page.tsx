@@ -5,13 +5,13 @@ import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { IconButton } from "@/components/ui/IconButton";
+import { useNotify } from "@/components/ui/Toaster";
 import { Pagination } from "@/components/ui/Pagination";
 import { toDisplayMessage } from "@/lib/api/errors";
 import { idFromIri } from "@/lib/api/iri";
 import { contactsApi, evaluateAlertRules, opportunitiesApi, alertsApi } from "@/lib/api/resources";
 import {
   ALERT_PRIORITIES,
-  ALERT_RULE_TYPES,
   ALERT_STATUSES,
   type Alert,
   type AlertRuleEvaluation,
@@ -22,21 +22,16 @@ import { formatDateTime, isOverdue } from "@/lib/format";
 import {
   alertPriorityBadgeClasses,
   alertPriorityLabels,
-  alertRuleTypeLabels,
   alertStatusBadgeClasses,
   alertStatusLabels,
 } from "@/lib/labels";
 
 const ITEMS_PER_PAGE = 20;
 
-/** Texte du bandeau affiché après « Vérifier les règles ». */
+/** Texte de la notification affichée après « Vérifier les règles ». */
 function evaluationMessage(result: AlertRuleEvaluation): string {
-  if (result.created === 0) return "Aucune nouvelle alerte.";
-  const details = ALERT_RULE_TYPES.filter((type) => (result.byRule[type] ?? 0) > 0)
-    .map((type) => `${alertRuleTypeLabels[type]} : ${result.byRule[type]}`)
-    .join(", ");
-  const total = result.created === 1 ? "1 alerte créée" : `${result.created} alertes créées`;
-  return details ? `${total} (${details}).` : `${total}.`;
+  if (result.created === 0) return "Aucune nouvelle alerte";
+  return result.created === 1 ? "1 alerte créée" : `${result.created} alertes créées`;
 }
 
 export default function AlertsPage() {
@@ -47,9 +42,8 @@ export default function AlertsPage() {
   const [priority, setPriority] = useState<AlertPriority | "">("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
+  const notify = useNotify();
   const [evaluating, setEvaluating] = useState(false);
-  const [evaluationResult, setEvaluationResult] = useState<string | null>(null);
 
   // Résolution des libellés d'élément lié (Alert n'expose que des IRI).
   const [contactNames, setContactNames] = useState<Record<number, string>>({});
@@ -103,30 +97,28 @@ export default function AlertsPage() {
   }, [page, status, priority]);
 
   async function markDone(alert: Alert) {
-    setActionError(null);
     try {
       // completedAt n'est pas rempli par le backend (même constat que pour
       // les relances, vérifié par curl) : on l'envoie nous-mêmes.
       await alertsApi.update(alert.id, { status: "done", completedAt: new Date().toISOString() });
+      notify.success("Alerte marquée comme faite");
       reload();
     } catch (err) {
-      setActionError(toDisplayMessage(err));
+      notify.error(toDisplayMessage(err));
     }
   }
 
   async function checkRules() {
     if (evaluating) return;
     setEvaluating(true);
-    setActionError(null);
-    setEvaluationResult(null);
     try {
       const result = await evaluateAlertRules();
-      setEvaluationResult(evaluationMessage(result));
+      notify.success(evaluationMessage(result));
       // Les alertes créées peuvent viser des éléments absents des libellés chargés.
       loadLinkedLabels();
       reload();
     } catch (err) {
-      setActionError(toDisplayMessage(err));
+      notify.error(toDisplayMessage(err));
     } finally {
       setEvaluating(false);
     }
@@ -204,12 +196,6 @@ export default function AlertsPage() {
 
       <div className="mt-4 space-y-3">
         <ErrorBanner message={error} />
-        <ErrorBanner message={actionError} />
-        {evaluationResult && (
-          <div className="rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
-            {evaluationResult}
-          </div>
-        )}
       </div>
 
       <div className="mt-4 overflow-hidden rounded-lg border border-black/10 bg-white">
