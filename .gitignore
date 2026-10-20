@@ -21,3 +21,9 @@
 .idea/
 .vscode/
 *.log
+
+# Données réelles de prospection (base PostgreSQL locale) : jamais versionnées
+/docker/db-data/
+
+# Fichiers générés par BMad
+/_bmad/render/
