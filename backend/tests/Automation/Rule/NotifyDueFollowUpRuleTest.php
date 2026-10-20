@@ -67,6 +67,31 @@ final class NotifyDueFollowUpRuleTest extends TestCase
         $rule->execute(new FollowUpDue($followUp));
     }
 
+    public function testExecuteDoesNotNotifyWhenContactIsInactive(): void
+    {
+        $followUp = (new FollowUp())
+            ->setTitle('Relance client')
+            ->setScheduledAt(new \DateTimeImmutable('2026-08-25 10:00:00'))
+            ->setContact((new Contact())->setActive(false));
+
+        $notifier = $this->createMock(NotifierInterface::class);
+        $notifier->expects(self::never())->method('notify');
+
+        (new NotifyDueFollowUpRule($notifier))->execute(new FollowUpDue($followUp));
+    }
+
+    public function testExecuteNotifiesWhenFollowUpHasNoContact(): void
+    {
+        $followUp = (new FollowUp())
+            ->setTitle('Relance client')
+            ->setScheduledAt(new \DateTimeImmutable('2026-08-25 10:00:00'));
+
+        $notifier = $this->createMock(NotifierInterface::class);
+        $notifier->expects(self::once())->method('notify');
+
+        (new NotifyDueFollowUpRule($notifier))->execute(new FollowUpDue($followUp));
+    }
+
     public function testGetNameReturnsStableIdentifier(): void
     {
         $rule = new NotifyDueFollowUpRule($this->createMock(NotifierInterface::class));

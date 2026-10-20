@@ -125,7 +125,9 @@ renvoie la description JSON-LD/Hydra.
   « Inactif »). Un contact inactif n'est plus proposé dans les listes de choix (relance,
   opportunité, alerte), sauf s'il est déjà lié à l'élément modifié (« Nom (inactif) »), et il
   est ignoré par les trois règles d'alerte (pour *Opportunité sans réponse* : opportunité dont
-  le contact est inactif ; sans contact, elle reste évaluée). Rien d'autre ne change : fiche,
+  le contact est inactif ; sans contact, elle reste évaluée) ainsi que par les règles
+  automatiques « relance échue » (pas de notification) et « score ≥ 80 » (pas d'alerte) ; une
+  relance ou une opportunité sans contact reste traitée. Rien d'autre ne change : fiche,
   relances, opportunités, alertes ouvertes et messages restent accessibles ; recocher la case
   le réactive. Migration `Version20261020170000` (non destructive, tous les contacts existants
   actifs) à lancer : `docker compose exec app php bin/console doctrine:migrations:migrate`.

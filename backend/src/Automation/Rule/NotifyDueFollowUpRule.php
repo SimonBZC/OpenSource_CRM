@@ -13,6 +13,9 @@ use App\Automation\Notifier\NotifierInterface;
  * App\Automation\Notifier\LoggerNotifier) — un simple log structuré, PAS
  * d'email/push/SMS. Le canal réel de notification est laissé derrière
  * NotifierInterface pour rester remplaçable sans changer cette règle.
+ *
+ * Une relance dont le contact est inactif n'est pas notifiée ; sans contact,
+ * elle l'est toujours.
  */
 final class NotifyDueFollowUpRule implements AutomationRuleInterface
 {
@@ -38,6 +41,11 @@ final class NotifyDueFollowUpRule implements AutomationRuleInterface
         }
 
         $followUp = $event->followUp;
+
+        // Contact inactif : pas de notification. Une relance sans contact reste notifiée.
+        if (false === $followUp->getContact()?->isActive()) {
+            return;
+        }
 
         $this->notifier->notify(
             sprintf(

@@ -36,6 +36,9 @@ use Doctrine\ORM\EntityManagerInterface;
  * détection peut se tromper (fausse détection de doublon, ou au contraire
  * doublon non détecté). Aucun marqueur persistant dédié n'a été ajouté en
  * base sans validation préalable, conformément à la consigne.
+ *
+ * Une opportunité dont le contact est inactif ne donne pas d'alerte ; sans
+ * contact, elle reste traitée.
  */
 final class CreateAlertForHighScoreOpportunityRule implements AutomationRuleInterface
 {
@@ -65,6 +68,12 @@ final class CreateAlertForHighScoreOpportunityRule implements AutomationRuleInte
         }
 
         $opportunity = $event->opportunity;
+
+        // Contact inactif : pas d'alerte. Une opportunité sans contact reste traitée.
+        if (false === $opportunity->getContact()?->isActive()) {
+            return;
+        }
+
         $score = $opportunity->getScore();
 
         if (null === $score || $score < $this->highScoreThreshold) {
