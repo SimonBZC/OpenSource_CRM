@@ -92,8 +92,10 @@ renvoie la description JSON-LD/Hydra.
 
 - **Dashboard** (`/dashboard`) orienté action : opportunités à traiter, relances du jour /
   en retard, alertes à traiter, opportunités à fort potentiel, opportunités récentes.
-- **Contacts, opportunités** (`/contacts`, `/opportunities`) — les entreprises n'ont plus de page dédiée : elles se créent depuis le formulaire contact et restent exposées par l'API (`/api/companies`) :
+- **Contacts, opportunités** (`/contacts`, `/opportunities`) :
   listes filtrables/triables, fiches détaillées, création/édition.
+- **Entreprises** : pas de page dédiée. Elles se créent depuis le formulaire contact et restent
+  exposées par l'API (`/api/companies`).
 - **Unicité des entreprises** : deux entreprises ne peuvent pas porter le même nom (casse et
   espaces en début/fin ignorés). L'API refuse un doublon sur POST/PUT/PATCH `/api/companies`
   (422, violation sur `name`).

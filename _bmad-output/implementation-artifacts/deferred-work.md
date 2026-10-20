@@ -4,3 +4,9 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-nettoyage-contacts-entreprises-alertes.md`
   summary: Ajouter un outillage de tests frontend pour couvrir useInlineCompany (compensation, doublon 422) et lib/prefill.ts.
   evidence: frontend/package.json n'a aucun script de test. Supprimer l'appel companiesApi.remove de compensation ne ferait échouer aucun test.
+
+## Deferred from: code review (2026-10-20)
+
+- Dates de relances/alertes saisies avant la correction UTC (2676c90) : stockées en « faux UTC » (heure locale étiquetée +00:00), elles s'affichent décalées de +1/+2 h et sont réenregistrées décalées si on les édite. Une migration de recalage (`AT TIME ZONE 'Europe/Paris'`) ne doit viser que les lignes saisies via le formulaire, pas celles créées par l'automatisation ou les fixtures (déjà en vrai UTC) : la sélection des lignes est à décider avec Simon. [frontend/src/lib/format.ts:36-54]
+- Retrait des pages Entreprises (1e24609) : plus aucune UI pour renommer ou supprimer une entreprise, ni pour éditer site, secteur, localisation, description, notes, source. Avec la règle d'unicité, une entreprise mal nommée ne peut plus être corrigée ni recréée. À confirmer avec Simon (édition légère depuis la fiche contact ?). [frontend/src/app/companies/ (supprimé)]
+- Pas de tests pour toDateTimeInputValue / fromDateTimeInputValue (aller-retour avec TZ=Europe/Paris) ni pour defaultFollowUpScheduledAt (13:59, 14:00, fin de mois) : le frontend n'a aucun runner de test (voir l'entrée outillage frontend plus haut). [frontend/src/lib/format.ts, frontend/src/lib/prefill.ts]

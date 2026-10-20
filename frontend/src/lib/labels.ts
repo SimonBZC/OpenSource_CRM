@@ -42,9 +42,6 @@ export const opportunitySourceLabels: Record<OpportunitySource, string> = {
   other: "Autre",
 };
 
-// Company.source réutilise les mêmes valeurs qu'OpportunitySource.
-export const companySourceLabels = opportunitySourceLabels;
-
 export const followUpStatusLabels: Record<FollowUpStatus, string> = {
   todo: "À faire",
   done: "Terminée",
