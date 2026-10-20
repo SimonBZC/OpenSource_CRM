@@ -81,3 +81,44 @@ services:
     depends_on:
       - app
     restart: unless-stopped
+
+  # --- Stack de test API (profil "test") ------------------------------------
+  # Base jetable + seconde instance du backend, totalement isolées de la vraie base
+  # (docker/db-data). Ne démarre qu'avec `docker compose --profile test up -d`.
+  db-test:
+    image: postgres:16-alpine
+    container_name: freecrm-db-test
+    profiles: ["test"]
+    environment:
+      POSTGRES_DB: freecrm
+      POSTGRES_USER: freecrm
+      POSTGRES_PASSWORD: freecrm
+    # tmpfs : données en mémoire, effacées à chaque arrêt du conteneur. Pas de port publié.
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U freecrm -d freecrm"]
+      interval: 2s
+      timeout: 5s
+      retries: 15
+
+  app-test:
+    build:
+      context: ./backend
+    container_name: freecrm-app-test
+    profiles: ["test"]
+    environment:
+      APP_ENV: dev
+      APP_DEBUG: 1
+      DATABASE_URL: "postgresql://freecrm:freecrm@db-test:5432/freecrm?serverVersion=16&charset=utf8"
+      MESSENGER_TRANSPORT_DSN: sync://
+      # IA désactivée en test : l'analyse répond 503, aucun appel réseau.
+      OPENAI_API_KEY: ""
+    ports:
+      - "${BACKEND_TEST_PORT:-18081}:8080"
+    volumes:
+      - ./backend:/var/www/html
+      - /var/www/html/var
+    depends_on:
+      db-test:
+        condition: service_healthy

@@ -1,0 +1,23 @@
+# Environnement local
+/.env
+/.env.local
+
+# Backend Symfony
+/backend/vendor/
+/backend/var/
+/backend/.env.local
+/backend/.env.*.local
+/backend/public/bundles/
+
+# Frontend Next.js
+/frontend/node_modules/
+/frontend/.next/
+/frontend/out/
+/frontend/.env.local
+/frontend/next-env.d.ts
+
+# Outils / OS
+.DS_Store
+.idea/
+.vscode/
+*.log
